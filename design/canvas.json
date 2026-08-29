@@ -1,47 +1,69 @@
 {
+  "pages": [
+    { "id": "page-1", "name": "Diseño" },
+    { "id": "page-2", "name": "Descartadas" }
+  ],
   "artboards": [
-    { "file": "DireccionA.dc.html", "x": 0,    "y": 0,    "w": 1100, "h": 760, "title": "A · Papelería editorial" },
-    { "file": "DireccionB.dc.html", "x": 1180, "y": 0,    "w": 1280, "h": 820, "title": "B · Tablero denso" },
-    { "file": "DireccionC.dc.html", "x": 2540, "y": 0,    "w": 390,  "h": 844, "title": "C · Terracota mobile" },
-    { "file": "DireccionD.dc.html", "x": 3010, "y": 0,    "w": 1100, "h": 760, "title": "D · Nocturno champagne" },
-    { "file": "Main.dc.html",       "x": 0,    "y": 1120, "w": 1240, "h": 900, "title": "Candidata que va adelante (A, pantalla completa)" }
+    { "file": "Main.dc.html",              "page": "page-1", "x": 0,    "y": 0, "w": 390, "h": 844, "title": "Resumen · Editorial suave" },
+    { "file": "VarianteSuave.dc.html",     "page": "page-1", "x": 470,  "y": 0, "w": 390, "h": 844, "title": "Resumen · Suave con profundidad" },
+    { "file": "VarianteContraste.dc.html", "page": "page-1", "x": 940,  "y": 0, "w": 390, "h": 844, "title": "Resumen · Alto contraste" },
+    { "file": "Pendientes.dc.html",        "page": "page-1", "x": 1490, "y": 0, "w": 390, "h": 844, "title": "Pendientes de Iglesia" },
+    { "file": "Invitados.dc.html",         "page": "page-1", "x": 1960, "y": 0, "w": 390, "h": 844, "title": "Invitados y confirmaciones" },
+
+    { "file": "DireccionC.dc.html", "page": "page-2", "x": 0,    "y": 0, "w": 390,  "h": 844, "title": "C original (antes)" },
+    { "file": "DireccionA.dc.html", "page": "page-2", "x": 470,  "y": 0, "w": 1100, "h": 760, "title": "A · Papelería editorial" },
+    { "file": "DireccionB.dc.html", "page": "page-2", "x": 1650, "y": 0, "w": 1280, "h": 820, "title": "B · Tablero denso" },
+    { "file": "DireccionD.dc.html", "page": "page-2", "x": 3010, "y": 0, "w": 1100, "h": 760, "title": "D · Nocturno champagne" }
   ],
   "annotations": [
     {
       "id": "guia",
+      "page": "page-1",
       "x": 0,
-      "y": -210,
+      "y": -230,
       "w": 900,
-      "text": "Escoge UNA dirección y construyo la app de React con esa.\n\nLas cuatro muestran el mismo contenido a propósito — el número de \"faltan por confirmar\" y el checklist de Iglesia — para que compares el estilo y no el contenido. Los números son de ejemplo.\n\nAbajo está la candidata que va adelante (A) como pantalla completa, con las tres secciones. Si te gusta media de una y media de otra, dilo y las mezclo."
+      "text": "C, ahora moderna. Escoge uno de los tres primeros y con ese acabo la app.\n\nLos tres son la MISMA pantalla de Resumen leída de tres formas distintas. Lo que cambió respecto a C: fuera las cuatro tarjetas idénticas de borde, fuera el anillo de 200px, el terracota bajó a acento (se gasta dos veces por pantalla, no en todo), y la tipografía pasó a Instrument Serif + Instrument Sans — el serif grande es lo que da el aire de boda sin volverlo cursi.\n\nLas dos pantallas de la derecha son el día a día, ya en el estilo que va adelante.\n\nLa fecha y los días que faltan son marcador: dime la fecha real y la pongo. Los demás números son de ejemplo."
     },
     {
-      "id": "nota-a",
+      "id": "nota-main",
+      "page": "page-1",
       "x": 0,
-      "y": 890,
-      "w": 340,
-      "text": "A · PAPELERÍA EDITORIAL\n\nApuesta: se siente parte de la boda, no una herramienta de oficina. Serif de invitación, marfil y olivo.\n\nCosto: menos denso. Cabe menos en pantalla y en el celular hay que hacer más scroll."
+      "y": 900,
+      "w": 390,
+      "text": "EDITORIAL SUAVE — va adelante\n\nPlano: hairlines y aire en vez de tarjetas. El 34 en serif enorme carga la pantalla y la barra fina de abajo es todo el progreso que hace falta.\n\nApuesta: se ve caro y calmado, y es la que menos se parece a una app genérica.\n\nCosto: es la menos «app» de las tres — nada grita dónde tocar."
     },
     {
-      "id": "nota-b",
-      "x": 1180,
-      "y": 890,
-      "w": 340,
-      "text": "B · TABLERO DENSO\n\nApuesta: mover 60 pendientes rápido. Kanban por estado, todo a la vista, filtros por responsable.\n\nCosto: parece software de trabajo. Nada en él dice \"boda\"."
+      "id": "nota-suave",
+      "page": "page-1",
+      "x": 470,
+      "y": 900,
+      "w": 390,
+      "text": "SUAVE CON PROFUNDIDAD\n\nMisma paleta y tipografía, pero con superficies elevadas: sin bordes, radio 22, sombra sutil. Conserva el anillo, más delgado, para que lo compares de verdad.\n\nApuesta: más cálida y táctil; se entiende sola sin explicación.\n\nCosto: es la más cercana a lo que ya viste en C — la más segura y la menos memorable."
     },
     {
-      "id": "nota-c",
-      "x": 2540,
-      "y": 890,
-      "w": 340,
-      "text": "C · TERRACOTA MOBILE-FIRST\n\nApuesta: se consulta del celular en cinco segundos. Un anillo, un número grande, tres tarjetas.\n\nCosto: en la compu desperdicia ancho, y para revisiones largas se queda corta."
+      "id": "nota-contraste",
+      "page": "page-1",
+      "x": 940,
+      "y": 900,
+      "w": 390,
+      "text": "ALTO CONTRASTE\n\nBloque de tinta casi negra arriba con el número en terracota encima, y el pendiente urgente como bloque sólido de color en vez de un aviso suave.\n\nApuesta: la más moderna de las tres y la que mejor jerarquía tiene — lo urgente es imposible de ignorar.\n\nCosto: fuerte para abrirla quince veces al día, y el bloque oscuro deja menos espacio a la lista."
     },
     {
-      "id": "nota-d",
-      "x": 3010,
-      "y": 890,
-      "w": 340,
-      "text": "D · NOCTURNO CHAMPAGNE\n\nApuesta: elegante y distinta a todo lo demás que tienen abierto en el teléfono.\n\nCosto: cansa en revisiones largas de día, y de noche en la calle se ve peor que una pantalla clara."
+      "id": "nota-pantallas",
+      "page": "page-1",
+      "x": 1490,
+      "y": 900,
+      "w": 860,
+      "text": "LAS DOS PANTALLAS DEL DÍA A DÍA (en Editorial suave)\n\nPendientes: lo hecho se va al fondo bajo su propia división, así lo que falta siempre queda arriba. La corte lleva su propio conteo (4 de 6) porque no es una casilla, es un progreso.\n\nInvitados: es la lista que alimenta el «faltan 34» del Resumen. Los nombres son inventados para el mockup.\n\nSi cambias de sabor, estas dos se restilan solas — la estructura es la misma, solo cambian los colores y las superficies."
+    },
+    {
+      "id": "nota-descartadas",
+      "page": "page-2",
+      "x": 0,
+      "y": 900,
+      "w": 900,
+      "text": "Ronda anterior, aquí por si quieres volver a comparar.\n\nA la izquierda queda C tal como estaba antes de modernizarla — sirve de antes/después contra los tres de la página Diseño."
     }
   ],
-  "launch": { "view": "canvas" }
+  "launch": { "view": "canvas", "page": "page-1" }
 }
