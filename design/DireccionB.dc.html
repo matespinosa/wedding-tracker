@@ -1,0 +1,206 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap">
+  <style>
+    body { margin: 0; }
+    a { color: #2F5FA8; text-decoration: none; }
+    a:hover { color: #1E3F72; }
+  </style>
+</helmet>
+
+<div style="width: 1280px; height: 820px; box-sizing: border-box; background: #F7F8F9; color: #1A1F26; font-family: 'IBM Plex Sans', 'Helvetica Neue', sans-serif; display: flex; flex-direction: column">
+
+  <div style="display: flex; align-items: center; justify-content: space-between; padding: 0 20px; height: 52px; background: #FFFFFF; border-bottom: 1px solid #E1E5EA">
+    <div style="display: flex; align-items: center; gap: 10px">
+      <div style="font-size: 14px; font-weight: 600">Boda · Tablero</div>
+      <div style="font-family: 'IBM Plex Mono', monospace; font-size: 11px; color: #6B7684; background: #F1F3F5; padding: 3px 7px; border-radius: 3px">Dirección B · Tablero denso</div>
+    </div>
+    <div style="display: flex; align-items: center; gap: 8px">
+      <div style="font-size: 12px; color: #6B7684">Filtrar:</div>
+      <div style="display: flex; gap: 4px">
+        <div style="font-size: 12px; padding: 4px 10px; border: 1px solid #1A1F26; border-radius: 4px; background: #1A1F26; color: #FFFFFF">Todos</div>
+        <div style="font-size: 12px; padding: 4px 10px; border: 1px solid #DDE2E7; border-radius: 4px; background: #FFFFFF">Novio</div>
+        <div style="font-size: 12px; padding: 4px 10px; border: 1px solid #DDE2E7; border-radius: 4px; background: #FFFFFF">Novia</div>
+      </div>
+    </div>
+  </div>
+
+  <div style="display: flex; gap: 1px; background: #E1E5EA; border-bottom: 1px solid #E1E5EA">
+    <div style="flex-grow: 1; background: #FFFFFF; padding: 14px 20px; display: flex; flex-direction: column; gap: 3px">
+      <div style="font-size: 11px; text-transform: uppercase; letter-spacing: 0.07em; color: #6B7684">Faltan por confirmar</div>
+      <div style="display: flex; align-items: baseline; gap: 8px">
+        <div style="font-family: 'IBM Plex Mono', monospace; font-size: 34px; font-weight: 600; color: #B45309">34</div>
+        <div style="font-size: 12px; color: #6B7684">de 120 · iglesia 12 · recepción 22</div>
+      </div>
+    </div>
+    <div style="flex-grow: 1; background: #FFFFFF; padding: 14px 20px; display: flex; flex-direction: column; gap: 3px">
+      <div style="font-size: 11px; text-transform: uppercase; letter-spacing: 0.07em; color: #6B7684">Corte de honor</div>
+      <div style="display: flex; align-items: baseline; gap: 8px">
+        <div style="font-family: 'IBM Plex Mono', monospace; font-size: 34px; font-weight: 600">4<span style="font-size: 18px; color: #6B7684">/6</span></div>
+        <div style="font-size: 12px; color: #6B7684">confirmados</div>
+      </div>
+    </div>
+    <div style="flex-grow: 1; background: #FFFFFF; padding: 14px 20px; display: flex; flex-direction: column; gap: 3px">
+      <div style="font-size: 11px; text-transform: uppercase; letter-spacing: 0.07em; color: #6B7684">Pendientes abiertos</div>
+      <div style="display: flex; align-items: baseline; gap: 8px">
+        <div style="font-family: 'IBM Plex Mono', monospace; font-size: 34px; font-weight: 600">12</div>
+        <div style="font-size: 12px; color: #B23B3B">1 bloqueado</div>
+      </div>
+    </div>
+    <div style="flex-grow: 1; background: #FFFFFF; padding: 14px 20px; display: flex; flex-direction: column; gap: 3px">
+      <div style="font-size: 11px; text-transform: uppercase; letter-spacing: 0.07em; color: #6B7684">Vence esta semana</div>
+      <div style="display: flex; align-items: baseline; gap: 8px">
+        <div style="font-family: 'IBM Plex Mono', monospace; font-size: 34px; font-weight: 600; color: #B23B3B">1</div>
+        <div style="font-size: 12px; color: #6B7684">contrato recepción</div>
+      </div>
+    </div>
+  </div>
+
+  <div style="flex-grow: 1; display: flex; gap: 0; min-height: 0">
+
+    <div style="width: 176px; background: #FFFFFF; border-right: 1px solid #E1E5EA; padding: 14px 0; display: flex; flex-direction: column; gap: 2px">
+      <div style="font-size: 10px; text-transform: uppercase; letter-spacing: 0.09em; color: #98A2AE; padding: 0 16px 8px">Secciones</div>
+      <div style="display: flex; align-items: center; justify-content: space-between; padding: 8px 16px; background: #EEF2F6; border-left: 2px solid #2F5FA8; font-size: 13px; font-weight: 500">
+        <span>Iglesia</span><span style="font-family: 'IBM Plex Mono', monospace; font-size: 11px; color: #6B7684">3/8</span>
+      </div>
+      <div style="display: flex; align-items: center; justify-content: space-between; padding: 8px 16px; border-left: 2px solid transparent; font-size: 13px">
+        <span>Recepción</span><span style="font-family: 'IBM Plex Mono', monospace; font-size: 11px; color: #6B7684">1/5</span>
+      </div>
+      <div style="display: flex; align-items: center; justify-content: space-between; padding: 8px 16px; border-left: 2px solid transparent; font-size: 13px">
+        <span>General</span><span style="font-family: 'IBM Plex Mono', monospace; font-size: 11px; color: #6B7684">0/3</span>
+      </div>
+      <div style="height: 1px; background: #E1E5EA; margin: 10px 16px"></div>
+      <div style="font-size: 10px; text-transform: uppercase; letter-spacing: 0.09em; color: #98A2AE; padding: 0 16px 8px">Listas</div>
+      <div style="display: flex; align-items: center; justify-content: space-between; padding: 8px 16px; border-left: 2px solid transparent; font-size: 13px">
+        <span>Invitados</span><span style="font-family: 'IBM Plex Mono', monospace; font-size: 11px; color: #6B7684">120</span>
+      </div>
+      <div style="display: flex; align-items: center; justify-content: space-between; padding: 8px 16px; border-left: 2px solid transparent; font-size: 13px">
+        <span>Corte</span><span style="font-family: 'IBM Plex Mono', monospace; font-size: 11px; color: #6B7684">6</span>
+      </div>
+      <div style="display: flex; align-items: center; justify-content: space-between; padding: 8px 16px; border-left: 2px solid transparent; font-size: 13px">
+        <span>Proveedores</span><span style="font-family: 'IBM Plex Mono', monospace; font-size: 11px; color: #6B7684">8</span>
+      </div>
+    </div>
+
+    <div style="flex-grow: 1; padding: 16px; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; min-height: 0">
+
+      <div style="display: flex; flex-direction: column; gap: 8px; min-height: 0">
+        <div style="display: flex; align-items: center; gap: 6px; padding-bottom: 2px">
+          <div style="width: 7px; height: 7px; border-radius: 50%; background: #98A2AE"></div>
+          <div style="font-size: 12px; font-weight: 600">Pendiente</div>
+          <div style="font-family: 'IBM Plex Mono', monospace; font-size: 11px; color: #6B7684">7</div>
+        </div>
+        <div style="display: flex; flex-direction: column; gap: 6px">
+          <div style="background: #FFFFFF; border: 1px solid #E1E5EA; border-radius: 5px; padding: 9px 10px; display: flex; flex-direction: column; gap: 6px">
+            <div style="font-size: 12.5px; line-height: 1.35">Pajecitos</div>
+            <div style="display: flex; align-items: center; gap: 5px"><span style="font-family: 'IBM Plex Mono', monospace; font-size: 10px; background: #F1F3F5; color: #6B7684; padding: 2px 5px; border-radius: 3px">Iglesia</span><span style="font-family: 'IBM Plex Mono', monospace; font-size: 10px; color: #98A2AE">Novia</span></div>
+          </div>
+          <div style="background: #FFFFFF; border: 1px solid #E1E5EA; border-radius: 5px; padding: 9px 10px; display: flex; flex-direction: column; gap: 6px">
+            <div style="font-size: 12.5px; line-height: 1.35">Carro de los novios</div>
+            <div style="display: flex; align-items: center; gap: 5px"><span style="font-family: 'IBM Plex Mono', monospace; font-size: 10px; background: #F1F3F5; color: #6B7684; padding: 2px 5px; border-radius: 3px">Iglesia</span><span style="font-family: 'IBM Plex Mono', monospace; font-size: 10px; color: #98A2AE">Novio</span></div>
+          </div>
+          <div style="background: #FFFFFF; border: 1px solid #E1E5EA; border-radius: 5px; padding: 9px 10px; display: flex; flex-direction: column; gap: 6px">
+            <div style="font-size: 12.5px; line-height: 1.35">Protocolo de la iglesia</div>
+            <div style="display: flex; align-items: center; gap: 5px"><span style="font-family: 'IBM Plex Mono', monospace; font-size: 10px; background: #F1F3F5; color: #6B7684; padding: 2px 5px; border-radius: 3px">Iglesia</span><span style="font-family: 'IBM Plex Mono', monospace; font-size: 10px; color: #98A2AE">Ambos</span></div>
+          </div>
+          <div style="background: #FFFFFF; border: 1px solid #E1E5EA; border-radius: 5px; padding: 9px 10px; display: flex; flex-direction: column; gap: 6px">
+            <div style="font-size: 12.5px; line-height: 1.35">Traje del novio — fechas</div>
+            <div style="display: flex; align-items: center; gap: 5px"><span style="font-family: 'IBM Plex Mono', monospace; font-size: 10px; background: #F1F3F5; color: #6B7684; padding: 2px 5px; border-radius: 3px">General</span><span style="font-family: 'IBM Plex Mono', monospace; font-size: 10px; color: #98A2AE">Novio</span></div>
+          </div>
+          <div style="background: #FFFFFF; border: 1px solid #E1E5EA; border-radius: 5px; padding: 9px 10px; display: flex; flex-direction: column; gap: 6px">
+            <div style="font-size: 12.5px; line-height: 1.35">Hotel noche de bodas</div>
+            <div style="display: flex; align-items: center; gap: 5px"><span style="font-family: 'IBM Plex Mono', monospace; font-size: 10px; background: #F1F3F5; color: #6B7684; padding: 2px 5px; border-radius: 3px">General</span><span style="font-family: 'IBM Plex Mono', monospace; font-size: 10px; color: #98A2AE">Ambos</span></div>
+          </div>
+          <div style="background: #FFFFFF; border: 1px solid #E1E5EA; border-radius: 5px; padding: 9px 10px; display: flex; flex-direction: column; gap: 6px">
+            <div style="font-size: 12.5px; line-height: 1.35">Lista de invitados a la iglesia</div>
+            <div style="display: flex; align-items: center; gap: 5px"><span style="font-family: 'IBM Plex Mono', monospace; font-size: 10px; background: #F1F3F5; color: #6B7684; padding: 2px 5px; border-radius: 3px">Iglesia</span><span style="font-family: 'IBM Plex Mono', monospace; font-size: 10px; color: #98A2AE">Ambos</span></div>
+          </div>
+          <div style="background: #FFFFFF; border: 1px solid #E1E5EA; border-radius: 5px; padding: 9px 10px; display: flex; flex-direction: column; gap: 6px">
+            <div style="font-size: 12.5px; line-height: 1.35">Vestido de la novia — fechas</div>
+            <div style="display: flex; align-items: center; gap: 5px"><span style="font-family: 'IBM Plex Mono', monospace; font-size: 10px; background: #F1F3F5; color: #6B7684; padding: 2px 5px; border-radius: 3px">General</span><span style="font-family: 'IBM Plex Mono', monospace; font-size: 10px; color: #98A2AE">Novia</span></div>
+          </div>
+        </div>
+      </div>
+
+      <div style="display: flex; flex-direction: column; gap: 8px; min-height: 0">
+        <div style="display: flex; align-items: center; gap: 6px; padding-bottom: 2px">
+          <div style="width: 7px; height: 7px; border-radius: 50%; background: #2F5FA8"></div>
+          <div style="font-size: 12px; font-weight: 600">En progreso</div>
+          <div style="font-family: 'IBM Plex Mono', monospace; font-size: 11px; color: #6B7684">4</div>
+        </div>
+        <div style="display: flex; flex-direction: column; gap: 6px">
+          <div style="background: #FFFFFF; border: 1px solid #E1E5EA; border-radius: 5px; padding: 9px 10px; display: flex; flex-direction: column; gap: 6px">
+            <div style="font-size: 12.5px; line-height: 1.35">Damas y caballeros de la corte</div>
+            <div style="height: 3px; background: #EEF2F6; border-radius: 2px"><div style="width: 67%; height: 3px; background: #2F5FA8; border-radius: 2px"></div></div>
+            <div style="display: flex; align-items: center; gap: 5px"><span style="font-family: 'IBM Plex Mono', monospace; font-size: 10px; background: #F1F3F5; color: #6B7684; padding: 2px 5px; border-radius: 3px">Iglesia</span><span style="font-family: 'IBM Plex Mono', monospace; font-size: 10px; color: #98A2AE">4 de 6</span></div>
+          </div>
+          <div style="background: #FFFFFF; border: 1px solid #E1E5EA; border-radius: 5px; padding: 9px 10px; display: flex; flex-direction: column; gap: 6px">
+            <div style="font-size: 12.5px; line-height: 1.35">DJ y equipo — staff</div>
+            <div style="display: flex; align-items: center; gap: 5px"><span style="font-family: 'IBM Plex Mono', monospace; font-size: 10px; background: #F1F3F5; color: #6B7684; padding: 2px 5px; border-radius: 3px">Recepción</span><span style="font-family: 'IBM Plex Mono', monospace; font-size: 10px; color: #98A2AE">Novio</span></div>
+          </div>
+          <div style="background: #FFFFFF; border: 1px solid #E1E5EA; border-radius: 5px; padding: 9px 10px; display: flex; flex-direction: column; gap: 6px">
+            <div style="font-size: 12.5px; line-height: 1.35">Confirmación de invitados</div>
+            <div style="height: 3px; background: #EEF2F6; border-radius: 2px"><div style="width: 72%; height: 3px; background: #2F5FA8; border-radius: 2px"></div></div>
+            <div style="display: flex; align-items: center; gap: 5px"><span style="font-family: 'IBM Plex Mono', monospace; font-size: 10px; background: #F1F3F5; color: #6B7684; padding: 2px 5px; border-radius: 3px">Recepción</span><span style="font-family: 'IBM Plex Mono', monospace; font-size: 10px; color: #98A2AE">86 de 120</span></div>
+          </div>
+          <div style="background: #FFFFFF; border: 1px solid #E1E5EA; border-radius: 5px; padding: 9px 10px; display: flex; flex-direction: column; gap: 6px">
+            <div style="font-size: 12.5px; line-height: 1.35">Transporte de invitados (Uber o interno)</div>
+            <div style="display: flex; align-items: center; gap: 5px"><span style="font-family: 'IBM Plex Mono', monospace; font-size: 10px; background: #F1F3F5; color: #6B7684; padding: 2px 5px; border-radius: 3px">Recepción</span><span style="font-family: 'IBM Plex Mono', monospace; font-size: 10px; color: #98A2AE">Ambos</span></div>
+          </div>
+        </div>
+      </div>
+
+      <div style="display: flex; flex-direction: column; gap: 8px; min-height: 0">
+        <div style="display: flex; align-items: center; gap: 6px; padding-bottom: 2px">
+          <div style="width: 7px; height: 7px; border-radius: 50%; background: #B23B3B"></div>
+          <div style="font-size: 12px; font-weight: 600">Bloqueado</div>
+          <div style="font-family: 'IBM Plex Mono', monospace; font-size: 11px; color: #6B7684">1</div>
+        </div>
+        <div style="display: flex; flex-direction: column; gap: 6px">
+          <div style="background: #FFFFFF; border: 1px solid #E7C9C9; border-radius: 5px; padding: 9px 10px; display: flex; flex-direction: column; gap: 6px">
+            <div style="font-size: 12.5px; line-height: 1.35; font-weight: 500">Contrato y cotización final</div>
+            <div style="font-size: 11px; color: #B23B3B; line-height: 1.35">Vence 7 sep · esperando respuesta del salón</div>
+            <div style="display: flex; align-items: center; gap: 5px"><span style="font-family: 'IBM Plex Mono', monospace; font-size: 10px; background: #FBEDED; color: #B23B3B; padding: 2px 5px; border-radius: 3px">Recepción</span><span style="font-family: 'IBM Plex Mono', monospace; font-size: 10px; color: #98A2AE">Ambos</span></div>
+          </div>
+        </div>
+      </div>
+
+      <div style="display: flex; flex-direction: column; gap: 8px; min-height: 0">
+        <div style="display: flex; align-items: center; gap: 6px; padding-bottom: 2px">
+          <div style="width: 7px; height: 7px; border-radius: 50%; background: #2F6F4E"></div>
+          <div style="font-size: 12px; font-weight: 600">Listo</div>
+          <div style="font-family: 'IBM Plex Mono', monospace; font-size: 11px; color: #6B7684">4</div>
+        </div>
+        <div style="display: flex; flex-direction: column; gap: 6px">
+          <div style="background: #FFFFFF; border: 1px solid #E1E5EA; border-radius: 5px; padding: 9px 10px; display: flex; align-items: center; gap: 7px">
+            <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="#2F6F4E" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 8.5 6.5 12 13 4.5"/></svg>
+            <div style="font-size: 12.5px; color: #6B7684">Decoración de la iglesia</div>
+          </div>
+          <div style="background: #FFFFFF; border: 1px solid #E1E5EA; border-radius: 5px; padding: 9px 10px; display: flex; align-items: center; gap: 7px">
+            <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="#2F6F4E" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 8.5 6.5 12 13 4.5"/></svg>
+            <div style="font-size: 12.5px; color: #6B7684">Testigos</div>
+          </div>
+          <div style="background: #FFFFFF; border: 1px solid #E1E5EA; border-radius: 5px; padding: 9px 10px; display: flex; align-items: center; gap: 7px">
+            <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="#2F6F4E" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 8.5 6.5 12 13 4.5"/></svg>
+            <div style="font-size: 12.5px; color: #6B7684">Fotógrafa confirmada</div>
+          </div>
+          <div style="background: #FFFFFF; border: 1px solid #E1E5EA; border-radius: 5px; padding: 9px 10px; display: flex; align-items: center; gap: 7px">
+            <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="#2F6F4E" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 8.5 6.5 12 13 4.5"/></svg>
+            <div style="font-size: 12.5px; color: #6B7684">Fotógrafa de recepción</div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+</x-dc>
+</body>
+</html>

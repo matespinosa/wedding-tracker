@@ -1,0 +1,47 @@
+{
+  "artboards": [
+    { "file": "DireccionA.dc.html", "x": 0,    "y": 0,    "w": 1100, "h": 760, "title": "A · Papelería editorial" },
+    { "file": "DireccionB.dc.html", "x": 1180, "y": 0,    "w": 1280, "h": 820, "title": "B · Tablero denso" },
+    { "file": "DireccionC.dc.html", "x": 2540, "y": 0,    "w": 390,  "h": 844, "title": "C · Terracota mobile" },
+    { "file": "DireccionD.dc.html", "x": 3010, "y": 0,    "w": 1100, "h": 760, "title": "D · Nocturno champagne" },
+    { "file": "Main.dc.html",       "x": 0,    "y": 1120, "w": 1240, "h": 900, "title": "Candidata que va adelante (A, pantalla completa)" }
+  ],
+  "annotations": [
+    {
+      "id": "guia",
+      "x": 0,
+      "y": -210,
+      "w": 900,
+      "text": "Escoge UNA dirección y construyo la app de React con esa.\n\nLas cuatro muestran el mismo contenido a propósito — el número de \"faltan por confirmar\" y el checklist de Iglesia — para que compares el estilo y no el contenido. Los números son de ejemplo.\n\nAbajo está la candidata que va adelante (A) como pantalla completa, con las tres secciones. Si te gusta media de una y media de otra, dilo y las mezclo."
+    },
+    {
+      "id": "nota-a",
+      "x": 0,
+      "y": 890,
+      "w": 340,
+      "text": "A · PAPELERÍA EDITORIAL\n\nApuesta: se siente parte de la boda, no una herramienta de oficina. Serif de invitación, marfil y olivo.\n\nCosto: menos denso. Cabe menos en pantalla y en el celular hay que hacer más scroll."
+    },
+    {
+      "id": "nota-b",
+      "x": 1180,
+      "y": 890,
+      "w": 340,
+      "text": "B · TABLERO DENSO\n\nApuesta: mover 60 pendientes rápido. Kanban por estado, todo a la vista, filtros por responsable.\n\nCosto: parece software de trabajo. Nada en él dice \"boda\"."
+    },
+    {
+      "id": "nota-c",
+      "x": 2540,
+      "y": 890,
+      "w": 340,
+      "text": "C · TERRACOTA MOBILE-FIRST\n\nApuesta: se consulta del celular en cinco segundos. Un anillo, un número grande, tres tarjetas.\n\nCosto: en la compu desperdicia ancho, y para revisiones largas se queda corta."
+    },
+    {
+      "id": "nota-d",
+      "x": 3010,
+      "y": 890,
+      "w": 340,
+      "text": "D · NOCTURNO CHAMPAGNE\n\nApuesta: elegante y distinta a todo lo demás que tienen abierto en el teléfono.\n\nCosto: cansa en revisiones largas de día, y de noche en la calle se ve peor que una pantalla clara."
+    }
+  ],
+  "launch": { "view": "canvas" }
+}
