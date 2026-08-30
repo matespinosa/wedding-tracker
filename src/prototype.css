@@ -1989,7 +1989,15 @@
 }
 
 .reception-panel {
+  display: grid;
   margin-top: 14px;
+  gap: 14px;
+  align-content: start;
+}
+
+/* El bloque de detalles abre grupo nuevo: pide algo más de aire que una card. */
+.reception-panel > .reception-details {
+  margin-top: 4px;
 }
 
 .reception-module[data-tab="Información"] .reception-panel[data-panel="Pendientes"],
@@ -2054,8 +2062,8 @@
   font-weight: 600;
 }
 
-.reception-panel .task-list {
-  margin-top: 11px;
+.reception-panel > .completed-group {
+  margin-top: 2px;
 }
 
 /* Desktop-only furniture stays out of the phone layout. */
@@ -2320,7 +2328,7 @@
   }
 
   .wedding-app[data-shell="web"] .reception-module .reception-panel {
-    display: block;
+    display: grid;
     margin-top: 0;
     min-width: 0;
   }
