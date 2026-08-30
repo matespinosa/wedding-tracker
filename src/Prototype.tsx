@@ -111,12 +111,12 @@ const QUEUE_KEY = "nuestra-boda-queue-v1";
 // Conexión por defecto: nadie tiene que teclear nada. La lectura del Web App es
 // pública (doGet no pide token); el token solo hace falta para escribir y se
 // inyecta en el build desde el secret SHEET_TOKEN de GitHub.
-const DEFAULT_API_URL = import.meta.env.VITE_SHEET_API_URL ?? "https://script.google.com/macros/s/AKfycby00XguFKlZ5awiyhvNAQM5XJACj5JURm2l6kZ3p4c7vajVOcGCsuueG-2mTEY7mT6zyA/exec";
-const DEFAULT_TOKEN = import.meta.env.VITE_SHEET_TOKEN ?? "";
+const DEFAULT_API_URL = import.meta.env.VITE_SHEET_API_URL || "https://script.google.com/macros/s/AKfycby00XguFKlZ5awiyhvNAQM5XJACj5JURm2l6kZ3p4c7vajVOcGCsuueG-2mTEY7mT6zyA/exec";
+const DEFAULT_TOKEN = import.meta.env.VITE_SHEET_TOKEN || "";
 // CSV de la pestaña Tracker_Version publicada en la web: una sola celda con un
 // número que sube en cada cambio. Sondearla es mucho más barato que traer todo
 // el JSON, y no consume cuota de Apps Script.
-const VERSION_CSV_URL = import.meta.env.VITE_SHEET_VERSION_URL ?? "https://docs.google.com/spreadsheets/d/e/2PACX-1vTvgdoCsoncP_vBhiTamymySUh7kY36Vs4UTUR8zXqlaRGmN9V1X7FSOX8knbdrCO4f8ZzUbcRoI6Ks/pub?gid=352088950&single=true&output=csv";
+const VERSION_CSV_URL = import.meta.env.VITE_SHEET_VERSION_URL || "https://docs.google.com/spreadsheets/d/e/2PACX-1vTvgdoCsoncP_vBhiTamymySUh7kY36Vs4UTUR8zXqlaRGmN9V1X7FSOX8knbdrCO4f8ZzUbcRoI6Ks/pub?gid=352088950&single=true&output=csv";
 const VERSION_POLL_MS = 12_000;
 const FULL_SYNC_MS = 5 * 60_000;
 const CORTE_ROLES: CorteRol[] = ["Dama de la corte", "Caballero de la corte", "Testigo", "Pajecito"];
