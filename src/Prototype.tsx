@@ -89,6 +89,11 @@ type Settings = {
   token: string;
 };
 
+type BeforeInstallPromptEvent = Event & {
+  prompt: () => Promise<void>;
+  userChoice: Promise<{ outcome: "accepted" | "dismissed" }>;
+};
+
 type PendingMutation = {
   hoja: "Config" | "Tareas" | "Invitados" | "Corte" | "Iglesia" | "Recepcion";
   payload: Record<string, unknown>;
@@ -296,6 +301,13 @@ function parsePlato(value: unknown): Meal | undefined {
 
 function parseStatus(value: unknown): TaskStatus {
   return value === "En progreso" || value === "Bloqueado" || value === "Listo" ? value : "Pendiente";
+}
+
+function statusTone(status: TaskStatus) {
+  if (status === "En progreso") return "status-in-progress";
+  if (status === "Listo") return "status-done";
+  if (status === "Bloqueado") return "status-blocked";
+  return "status-pending";
 }
 
 function parseResponsible(value: unknown): Responsible {
@@ -744,12 +756,18 @@ export default function Prototype() {
     }
   };
 
+  const updateTaskStatus = (id: string, estado: TaskStatus) => {
+    const current = tasks.find((task) => task.id === id);
+    if (!current) return;
+    const updated: Task = { ...current, estado };
+    setTasks((items) => items.map((task) => task.id === id ? updated : task));
+    void persistMutation({ hoja: "Tareas", payload: updated as unknown as Record<string, unknown> });
+  };
+
   const toggleTask = (id: string) => {
     const current = tasks.find((task) => task.id === id);
     if (!current) return;
-    const updated: Task = { ...current, estado: current.estado === "Listo" ? "Pendiente" : "Listo" };
-    setTasks((items) => items.map((task) => task.id === id ? updated : task));
-    void persistMutation({ hoja: "Tareas", payload: updated as unknown as Record<string, unknown> });
+    updateTaskStatus(id, current.estado === "Listo" ? "Pendiente" : "Listo");
   };
 
   const updateCorte = (updated: CortePerson) => {
@@ -811,6 +829,7 @@ export default function Prototype() {
                 onAdd={() => setSheet("task")}
                 onAddCorte={() => setSheet("church-person-new")}
                 onToggle={toggleTask}
+                onStatusChange={updateTaskStatus}
                 onSelectCorte={(id) => { setSelectedCorteId(id); setSheet("church-person"); }}
                 onSelectLogistics={(section, key) => { setSelectedLogisticsSection(section); setSelectedLogisticsKey(key); setSheet("logistics-detail"); }}
                 onOpenGuests={() => navigate("Invitados")}
@@ -831,6 +850,7 @@ export default function Prototype() {
             <label className="field-block" htmlFor="api-url"><span>URL del Web App</span><shell.Field id="api-url" inputMode="url" placeholder="https://script.google.com/macros/s/..." value={settingsDraft.apiUrl} onChange={(event) => setSettingsDraft((current) => ({ ...current, apiUrl: event.target.value }))} /></label>
             <label className="field-block" htmlFor="api-token"><span>Token privado</span><shell.Field id="api-token" type="password" placeholder="Solo hace falta para guardar cambios" value={settingsDraft.token} onChange={(event) => setSettingsDraft((current) => ({ ...current, token: event.target.value }))} /></label>
           </details>
+          <PwaInstallCard />
           <p className={`connection-message ${connectionState}`}>{connectionState === "syncing" ? "Actualizando..." : connectionState === "success" ? "Al día con Google Sheets." : connectionState === "error" ? (connectionDetail || "No pudimos conectar con Google Sheets.") : connectionState === "queued" ? (connectionDetail || "Hay cambios locales por enviar.") : "Leyendo la hoja de la boda."}</p>
           <button className="primary-button" type="button" onClick={async () => {
             shell.hideKeyboard();
@@ -1058,6 +1078,68 @@ function CardNote({ note }: { note?: string }) {
   );
 }
 
+function StatusLegend() {
+  return (
+    <div className="status-legend" aria-label="Leyenda de estados">
+      <span className="status-legend-label">Estados</span>
+      {(["Pendiente", "En progreso", "Listo"] as TaskStatus[]).map((status) => (
+        <span key={status} className={`status-legend-item ${statusTone(status)}`}>
+          <i className="status-dot" aria-hidden="true" />{status}
+        </span>
+      ))}
+    </div>
+  );
+}
+
+function PwaInstallCard() {
+  const [installPrompt, setInstallPrompt] = useState<BeforeInstallPromptEvent | null>(null);
+  const [installed, setInstalled] = useState(false);
+
+  useEffect(() => {
+    const isStandalone = window.matchMedia("(display-mode: standalone)").matches
+      || (window.navigator as Navigator & { standalone?: boolean }).standalone === true;
+    setInstalled(isStandalone);
+
+    const handleBeforeInstall = (event: Event) => {
+      event.preventDefault();
+      setInstallPrompt(event as BeforeInstallPromptEvent);
+    };
+    const handleInstalled = () => {
+      setInstalled(true);
+      setInstallPrompt(null);
+    };
+
+    window.addEventListener("beforeinstallprompt", handleBeforeInstall as EventListener);
+    window.addEventListener("appinstalled", handleInstalled);
+    return () => {
+      window.removeEventListener("beforeinstallprompt", handleBeforeInstall as EventListener);
+      window.removeEventListener("appinstalled", handleInstalled);
+    };
+  }, []);
+
+  const requestInstall = async () => {
+    if (!installPrompt) return;
+    await installPrompt.prompt();
+    await installPrompt.userChoice;
+    setInstallPrompt(null);
+  };
+
+  return (
+    <div className="pwa-install-card">
+      <div className="pwa-install-icon"><RingsMark /></div>
+      <div className="pwa-install-copy">
+        <strong>{installed ? "App instalada en este teléfono" : "Llévala a la pantalla de inicio"}</strong>
+        <span>{installed ? "Se abre como una app y conserva tus cambios locales." : "Así tú y tu esposa pueden abrirla rápidamente, incluso cuando no haya señal."}</span>
+      </div>
+      {installPrompt ? (
+        <button className="pwa-install-button" type="button" onClick={() => void requestInstall()}>Instalar</button>
+      ) : !installed ? (
+        <span className="pwa-install-help">iPhone: Compartir → Añadir a pantalla de inicio</span>
+      ) : null}
+    </div>
+  );
+}
+
 function KpiCard({ label, value, unit, note, tone, bar }: { label: string; value: ReactNode; unit?: string; note?: string; tone?: "accent" | "sage" | "urgent"; bar?: number }) {
   return (
     <div className="kpi-card">
@@ -1178,6 +1260,7 @@ function SectionScreen({
   onAdd,
   onAddCorte,
   onToggle,
+  onStatusChange,
   onSelectCorte,
   onSelectLogistics,
   onOpenGuests,
@@ -1191,6 +1274,7 @@ function SectionScreen({
   onAdd: () => void;
   onAddCorte: () => void;
   onToggle: (id: string) => void;
+  onStatusChange: (id: string, status: TaskStatus) => void;
   onSelectCorte: (id: string) => void;
   onSelectLogistics: (section: "Iglesia" | "Recepción", key: string) => void;
   onOpenGuests: () => void;
@@ -1226,6 +1310,7 @@ function SectionScreen({
     <section className="tasks-page page-shell">
       <header className="screen-header"><button className="icon-button back-button" type="button" aria-label="Volver al resumen" onClick={onBack}><ChevronLeftIcon /></button><h1>{section}</h1>{section === "Iglesia" ? <button className="icon-button" type="button" aria-label="Agregar persona de corte" onClick={onAddCorte}><PlusIcon /></button> : <button className="icon-button" type="button" aria-label={`Agregar pendiente de ${section}`} onClick={onAdd}><PlusIcon /></button>}</header>
       <div className="section-progress" aria-label={`${shownProgress.done} de ${shownProgress.total} elementos listos`}><span style={{ width: `${Math.max(4, shownProgress.percent)}%` }} /></div><p className="progress-caption">{shownProgress.done} de {shownProgress.total} listos</p>
+      <StatusLegend />
 
       {section === "Iglesia" ? (
         <div className="church-module">
@@ -1251,9 +1336,9 @@ function SectionScreen({
                   const done = item.estado === "Listo";
                   return (
                     <button key={item.clave} className="ceremony-detail-card" type="button" onClick={() => onSelectLogistics("Iglesia", item.clave)}>
-                      <span className={`ceremony-card-icon ${done ? "done" : ""}`}>{item.clave === "oficiante" ? <PersonIcon /> : item.clave === "decoracion" ? <BookmarkIcon /> : done ? <CheckIcon /> : <ListBulletIcon />}</span>
+                      <span className={`ceremony-card-icon ${statusTone(item.estado)}`}>{item.clave === "oficiante" ? <PersonIcon /> : item.clave === "decoracion" ? <BookmarkIcon /> : done ? <CheckIcon /> : <ListBulletIcon />}</span>
                       <span className="ceremony-card-copy"><small>{item.titulo}</small><strong>{item.valor || "Por completar"}</strong><span>Responsable: {item.responsable}</span></span>
-                      <span className={`status-pill ${done ? "confirmed" : ""}`}>{item.estado}</span>
+                      <span className={`status-pill ${statusTone(item.estado)}`}><i className="status-dot" aria-hidden="true" />{item.estado}</span>
                       <ChevronRightIcon className="ceremony-chevron" />
                       <CardNote note={item.notas} />
                     </button>
@@ -1275,7 +1360,7 @@ function SectionScreen({
                         <button key={person.id} className={`corte-person ${person.confirmado === "Sí" ? "confirmed" : ""}`} type="button" onClick={() => onSelectCorte(person.id)}>
                           <span className="corte-avatar">{person.nombre.trim() ? person.nombre.trim().slice(0, 1).toLocaleUpperCase("es") : index + 1}</span>
                           <span className="corte-person-copy"><strong>{person.nombre.trim() || `${rol} ${index + 1}`}</strong><small>{person.notas || person.telefono || "Información por completar"}</small></span>
-                          <span className={`status-pill ${person.confirmado === "Sí" ? "confirmed" : ""}`}>{person.confirmado === "Sí" ? "Confirmado" : "Pendiente"}</span>
+                          <span className={`status-pill ${person.confirmado === "Sí" ? "confirmed" : "status-pending"}`}><i className="status-dot" aria-hidden="true" />{person.confirmado === "Sí" ? "Confirmado" : "Pendiente"}</span>
                           <ChevronRightIcon className="ceremony-chevron" />
                         </button>
                       ))}
@@ -1310,8 +1395,8 @@ function SectionScreen({
                   </div>
                 </div>
               </div>
-              <div className="task-list">{pending.map((task) => <TaskRow key={task.id} task={task} onToggle={onToggle} />)}{!pending.length ? <div className="empty-state"><CheckIcon /><strong>Todo listo por aquí</strong><span>Prueba otro filtro o agrega un pendiente.</span></div> : null}</div>
-              {complete.length ? <div className="completed-group"><div className="group-title"><span>Listas: {complete.length}</span></div><div className="task-list complete-list">{complete.map((task) => <TaskRow key={task.id} task={task} onToggle={onToggle} />)}</div></div> : null}
+              <div className="task-list">{pending.map((task) => <TaskRow key={task.id} task={task} onToggle={onToggle} onStatusChange={onStatusChange} />)}{!pending.length ? <div className="empty-state"><CheckIcon /><strong>Todo listo por aquí</strong><span>Prueba otro filtro o agrega un pendiente.</span></div> : null}</div>
+              {complete.length ? <div className="completed-group"><div className="group-title"><span>Listas: {complete.length}</span></div><div className="task-list complete-list">{complete.map((task) => <TaskRow key={task.id} task={task} onToggle={onToggle} onStatusChange={onStatusChange} />)}</div></div> : null}
             </div>
 
             <div className="reception-panel" data-panel="Información" role="tabpanel">
@@ -1343,9 +1428,9 @@ function SectionScreen({
                       const done = item.estado === "Listo";
                       return (
                         <button key={item.clave} className="reception-detail-card" type="button" onClick={() => onSelectLogistics("Recepción", item.clave)}>
-                          <span className={`reception-card-icon ${done ? "done" : ""}`}>{receptionIcon(item.clave, done)}</span>
+                          <span className={`reception-card-icon ${statusTone(item.estado)}`}>{receptionIcon(item.clave, done)}</span>
                           <span className="reception-card-copy"><small>{item.titulo}</small><strong>{item.valor || "Por completar"}</strong><span>Responsable: {item.responsable}</span></span>
-                          <span className={`status-pill ${done ? "confirmed" : ""}`}>{item.estado}</span>
+                          <span className={`status-pill ${statusTone(item.estado)}`}><i className="status-dot" aria-hidden="true" />{item.estado}</span>
                           <ChevronRightIcon className="ceremony-chevron" />
                           <CardNote note={item.notas} />
                         </button>
@@ -1363,14 +1448,14 @@ function SectionScreen({
             <div className="section-block">
               <div className="group-title"><span>Logística</span></div>
               <div className="logistics-list">
-                {logistics.map((item) => <button key={item.clave} className="logistic-row" type="button" onClick={() => onSelectLogistics("Iglesia", item.clave)}><div className="task-copy"><strong>{item.titulo}</strong><span>{item.valor || item.notas || "Por completar"}</span></div><span className={`status-pill ${item.estado === "Listo" ? "confirmed" : ""}`}>{item.estado}</span><ChevronRightIcon className="ceremony-chevron" /></button>)}
+                {logistics.map((item) => <button key={item.clave} className="logistic-row" type="button" onClick={() => onSelectLogistics("Iglesia", item.clave)}><div className="task-copy"><strong>{item.titulo}</strong><span>{item.valor || item.notas || "Por completar"}</span></div><span className={`status-pill ${statusTone(item.estado)}`}><i className="status-dot" aria-hidden="true" />{item.estado}</span><ChevronRightIcon className="ceremony-chevron" /></button>)}
               </div>
             </div>
           ) : null}
 
           <div className="section-block reception-tasks-block"><div className="group-title"><span>Pendientes</span></div><div className="filter-row" role="group" aria-label="Filtrar por responsable">{(["Todas", "Novio", "Novia", "Ambos"] as const).map((option) => <button key={option} className={filter === option ? "active" : ""} type="button" onClick={() => setFilter(option)}>{option}</button>)}</div>
-          <div className="task-list">{pending.map((task) => <TaskRow key={task.id} task={task} onToggle={onToggle} />)}{!pending.length ? <div className="empty-state"><CheckIcon /><strong>Todo listo por aquí</strong><span>Prueba otro filtro o agrega un pendiente.</span></div> : null}</div>
-          {complete.length ? <div className="completed-group"><div className="group-title"><span>Listas: {complete.length}</span></div><div className="task-list complete-list">{complete.map((task) => <TaskRow key={task.id} task={task} onToggle={onToggle} />)}</div></div> : null}
+          <div className="task-list">{pending.map((task) => <TaskRow key={task.id} task={task} onToggle={onToggle} onStatusChange={onStatusChange} />)}{!pending.length ? <div className="empty-state"><CheckIcon /><strong>Todo listo por aquí</strong><span>Prueba otro filtro o agrega un pendiente.</span></div> : null}</div>
+          {complete.length ? <div className="completed-group"><div className="group-title"><span>Listas: {complete.length}</span></div><div className="task-list complete-list">{complete.map((task) => <TaskRow key={task.id} task={task} onToggle={onToggle} onStatusChange={onStatusChange} />)}</div></div> : null}
           </div>
         </>
       )}
@@ -1481,19 +1566,27 @@ function LogisticsDetailSheet({
   );
 }
 
-function TaskRow({ task, onToggle }: { task: Task; onToggle: (id: string) => void }) {
+function nextTaskStatus(status: TaskStatus): TaskStatus {
+  if (status === "Pendiente") return "En progreso";
+  if (status === "En progreso") return "Listo";
+  return "Pendiente";
+}
+
+function TaskRow({ task, onToggle, onStatusChange }: { task: Task; onToggle: (id: string) => void; onStatusChange: (id: string, status: TaskStatus) => void }) {
   const done = task.estado === "Listo";
   const dueParts = splitDueDate(task.fecha_limite);
   const late = isOverdue(task.fecha_limite);
   return (
-    <article className={`task-row ${done ? "done" : ""}`}>
+    <article className={`task-row ${statusTone(task.estado)} ${done ? "done" : ""}`}>
       <button className="task-check" type="button" aria-label={done ? `Marcar ${task.titulo} como pendiente` : `Marcar ${task.titulo} como listo`} onClick={() => onToggle(task.id)}>{done ? <CheckIcon /> : null}</button>
       <div className="task-copy">
         <strong>{task.titulo}</strong>
         {!done ? <span>{task.detalle}{dueParts ? <em className={`task-due ${late ? "late" : ""}`}>{late ? "venció" : "vence"} {dueParts.short}</em> : null}</span> : null}
         {!done ? <span className="task-tags"><b>{task.responsable}</b><b className={task.prioridad === "Alta" ? "high" : ""}>{task.prioridad}</b></span> : null}
       </div>
-      {!done ? <small>{task.responsable}</small> : null}
+      <button className={`status-pill task-status-button ${statusTone(task.estado)}`} type="button" aria-label={`Cambiar estado de ${task.titulo}. Siguiente: ${nextTaskStatus(task.estado)}`} onClick={() => onStatusChange(task.id, nextTaskStatus(task.estado))}>
+        <i className="status-dot" aria-hidden="true" />{task.estado}
+      </button>
     </article>
   );
 }

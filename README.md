@@ -6,12 +6,14 @@ Aplicación móvil en React para seguir tareas de Iglesia, Recepción y General,
 
 - Resumen con personas pendientes, confirmadas y progreso por sección.
 - Tareas filtrables por responsable, con cambios optimistas y persistencia local.
+- Estados de tarea claramente diferenciados: Pendiente, En progreso y Listo; la etiqueta permite avanzar el estado con un toque.
 - Invitados filtrables y buscables, con edición rápida de RSVP y transporte.
 - Formularios para agregar tareas, grupos de invitados y personas de la corte ceremonial.
 - Conexión a Google Sheets sin configurar nada: la URL viene horneada en el build y la lectura del Web App es pública.
 - Actualización casi en vivo: cada 12 s se consulta un número de versión en la hoja y solo se descarga el JSON completo cuando algo cambió.
 - Configuración de la fecha de la boda (se sincroniza en `Config`) y override opcional de URL y token para apuntar a otra hoja.
 - Cola local de cambios que intenta sincronizar de nuevo al recuperar conexión.
+- PWA instalable con favicon de la marca, iconos para iOS/Android y caché del app shell para abrirla sin señal después de la primera visita.
 - Backend de Google Sheets en [`apps-script/Codigo.gs`](./apps-script/Codigo.gs), pensado para el archivo de la invitación: lee Confirmacion y escribe solo pestañas `Tracker_*`.
 
 ## Desarrollo
@@ -30,6 +32,10 @@ VITE_SHEET_TOKEN=el-token-del-apps-script
 ```
 
 Sin esos valores la interfaz usa datos de ejemplo. Los cambios se conservan en `localStorage` incluso sin conexión.
+
+## Instalar en el teléfono
+
+La app se puede instalar desde la URL publicada usando el menú del navegador. En iPhone: **Compartir → Añadir a pantalla de inicio**. En Android: **menú ⋮ → Instalar app** o **Añadir a pantalla de inicio**. También puedes abrir Configuración dentro de la app para consultar la opción de instalación cuando el navegador la ofrezca.
 
 ## Verificación
 
