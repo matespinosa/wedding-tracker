@@ -107,6 +107,18 @@ const DEFAULT_WEDDING_DATE = "2026-10-03";
 const WEDDING_TIME = "11:00 a.m.";
 const STORAGE_KEY = "nuestra-boda-v3";
 const QUEUE_KEY = "nuestra-boda-queue-v1";
+
+// Conexión por defecto: nadie tiene que teclear nada. La lectura del Web App es
+// pública (doGet no pide token); el token solo hace falta para escribir y se
+// inyecta en el build desde el secret SHEET_TOKEN de GitHub.
+const DEFAULT_API_URL = import.meta.env.VITE_SHEET_API_URL ?? "https://script.google.com/macros/s/AKfycby00XguFKlZ5awiyhvNAQM5XJACj5JURm2l6kZ3p4c7vajVOcGCsuueG-2mTEY7mT6zyA/exec";
+const DEFAULT_TOKEN = import.meta.env.VITE_SHEET_TOKEN ?? "";
+// CSV de la pestaña Tracker_Version publicada en la web: una sola celda con un
+// número que sube en cada cambio. Sondearla es mucho más barato que traer todo
+// el JSON, y no consume cuota de Apps Script.
+const VERSION_CSV_URL = import.meta.env.VITE_SHEET_VERSION_URL ?? "https://docs.google.com/spreadsheets/d/e/2PACX-1vTvgdoCsoncP_vBhiTamymySUh7kY36Vs4UTUR8zXqlaRGmN9V1X7FSOX8knbdrCO4f8ZzUbcRoI6Ks/pub?gid=352088950&single=true&output=csv";
+const VERSION_POLL_MS = 12_000;
+const FULL_SYNC_MS = 5 * 60_000;
 const CORTE_ROLES: CorteRol[] = ["Dama de la corte", "Caballero de la corte", "Testigo", "Pajecito"];
 
 const initialTasks: Task[] = [
@@ -437,16 +449,54 @@ function normalizeApiUrl(url: string) {
   return url.trim().replace(/[?&]token=[^&]*$/, "").replace(/\/+$/, "");
 }
 
+function isUsableUrl(url: string) {
+  const value = url.trim();
+  return /^https:\/\//.test(value) || /^http:\/\/localhost(:\d+)?\//.test(value);
+}
+
+/**
+ * Los campos de Ajustes son un override opcional (útil para apuntar a una hoja
+ * de pruebas). Si están vacíos manda la conexión horneada en el build, así que
+ * un dispositivo nuevo lee el Sheet real sin que nadie configure nada.
+ */
+function resolveConnection(settings: Settings) {
+  const apiUrl = isUsableUrl(settings.apiUrl) ? normalizeApiUrl(settings.apiUrl) : isUsableUrl(DEFAULT_API_URL) ? normalizeApiUrl(DEFAULT_API_URL) : "";
+  return { apiUrl, token: settings.token || DEFAULT_TOKEN };
+}
+
+async function fetchVersion(settings: Settings) {
+  try {
+    if (isUsableUrl(VERSION_CSV_URL)) {
+      const response = await fetch(VERSION_CSV_URL, { cache: "no-store" });
+      if (!response.ok) return null;
+      const lines = (await response.text()).trim().split(/\r?\n/);
+      const value = lines[lines.length - 1]?.replace(/"/g, "").trim();
+      return value || null;
+    }
+    // Respaldo si la pestaña Tracker_Version no está publicada: se lo pedimos al
+    // propio Web App. Más caro en cuota, por eso no es el camino normal.
+    const { apiUrl } = resolveConnection(settings);
+    if (!apiUrl) return null;
+    const response = await fetch(`${apiUrl}?check=1`, { redirect: "follow", cache: "no-store" });
+    if (!response.ok) return null;
+    const data = JSON.parse(await response.text()) as { version?: string };
+    return data.version ? String(data.version) : null;
+  } catch {
+    return null;
+  }
+}
+
 function createCorteId() {
   return `corte-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
 }
 
 async function sendMutation(settings: Settings, mutation: PendingMutation) {
-  if (!settings.apiUrl || !settings.token) throw new Error("Sin conexión configurada");
-  const response = await fetch(normalizeApiUrl(settings.apiUrl), {
+  const { apiUrl, token } = resolveConnection(settings);
+  if (!apiUrl || !token) throw new Error("Sin conexión configurada");
+  const response = await fetch(apiUrl, {
     method: "POST",
     headers: { "Content-Type": "text/plain;charset=utf-8" },
-    body: JSON.stringify({ accion: "actualizar", hoja: mutation.hoja, token: settings.token, payload: mutation.payload }),
+    body: JSON.stringify({ accion: "actualizar", hoja: mutation.hoja, token, payload: mutation.payload }),
   });
   if (!response.ok) throw new Error("No se pudo sincronizar");
   const result = (await response.json()) as { ok?: boolean };
@@ -489,10 +539,15 @@ export default function Prototype() {
   const shell = useShell();
   const { isKeyboardVisible } = shell;
   const autoSyncStarted = useRef(false);
+  const lastVersion = useRef<string | null>(null);
+  const lastFullSync = useRef(0);
+  const syncInFlight = useRef(false);
 
   const flushQueue = async (sourceSettings: Settings) => {
     const queue = readQueue();
-    if (!queue.length || !sourceSettings.apiUrl || !sourceSettings.token) return true;
+    const { apiUrl, token } = resolveConnection(sourceSettings);
+    if (!queue.length) return true;
+    if (!apiUrl || !token) return false;
     const remaining: PendingMutation[] = [];
     for (const mutation of queue) {
       try {
@@ -506,14 +561,17 @@ export default function Prototype() {
   };
 
   const syncFromSheet = async (sourceSettings: Settings, preferredDate?: string) => {
-    if (!sourceSettings.apiUrl || !sourceSettings.token) return false;
+    const { apiUrl, token } = resolveConnection(sourceSettings);
+    if (!apiUrl) return false;
     setConnectionState("syncing");
     setConnectionDetail("");
 
     try {
       const queueFlushed = await flushQueue(sourceSettings);
-      const joiner = sourceSettings.apiUrl.includes("?") ? "&" : "?";
-      const response = await fetch(`${normalizeApiUrl(sourceSettings.apiUrl)}${joiner}token=${encodeURIComponent(sourceSettings.token)}`, { redirect: "follow" });
+      // El token viaja solo para seguir funcionando con implementaciones viejas
+      // del Web App; desde esta versión doGet ya no lo pide.
+      const query = token ? `?token=${encodeURIComponent(token)}` : "";
+      const response = await fetch(`${apiUrl}${query}`, { redirect: "follow", cache: "no-store" });
       const raw = await response.text();
       let data: SheetResponse;
       try {
@@ -561,29 +619,58 @@ export default function Prototype() {
     window.localStorage.setItem(STORAGE_KEY, JSON.stringify({ tasks, guests, corte, iglesia, recepcion, settings }));
   }, [tasks, guests, corte, iglesia, recepcion, settings]);
 
+  const runSync = async (sourceSettings: Settings, version: string | null) => {
+    if (syncInFlight.current) return;
+    syncInFlight.current = true;
+    try {
+      if (await syncFromSheet(sourceSettings)) {
+        lastFullSync.current = Date.now();
+        if (version) lastVersion.current = version;
+      }
+    } finally {
+      syncInFlight.current = false;
+    }
+  };
+
+  /**
+   * Sondeo barato: preguntamos por el número de versión de la hoja y solo
+   * traemos el JSON completo cuando cambió. Cada cierto tiempo forzamos una
+   * lectura completa igualmente, por si el trigger onChange se perdió un evento.
+   */
+  const checkForChanges = async (sourceSettings: Settings, ignoreHidden = false) => {
+    if (!resolveConnection(sourceSettings).apiUrl) return;
+    // La pausa por pestaña oculta aplica al sondeo periódico, no a la carga
+    // inicial: una app abierta en segundo plano igual tiene que traer datos.
+    if (!ignoreHidden && typeof document !== "undefined" && document.hidden) return;
+    const version = await fetchVersion(sourceSettings);
+    const stale = Date.now() - lastFullSync.current > FULL_SYNC_MS;
+    if (version === null) {
+      if (stale) await runSync(sourceSettings, null);
+      return;
+    }
+    if (version !== lastVersion.current || stale) await runSync(sourceSettings, version);
+  };
+
   useEffect(() => {
     if (autoSyncStarted.current) return;
     autoSyncStarted.current = true;
-    if (!settings.apiUrl || !settings.token) return;
-    void syncFromSheet(settings);
+    void checkForChanges(settings, true);
   }, []);
 
   useEffect(() => {
-    const handleOnline = () => {
-      if (settings.apiUrl && settings.token) void syncFromSheet(settings);
+    const check = () => void checkForChanges(settings);
+    const handleVisibility = () => {
+      if (!document.hidden) void checkForChanges(settings, true);
     };
-    const handleFocus = () => {
-      if (settings.apiUrl && settings.token) void syncFromSheet(settings);
-    };
-    const refreshTimer = settings.apiUrl && settings.token
-      ? window.setInterval(() => void syncFromSheet(settings), 60_000)
-      : undefined;
-    window.addEventListener("online", handleOnline);
-    window.addEventListener("focus", handleFocus);
+    const refreshTimer = window.setInterval(check, VERSION_POLL_MS);
+    window.addEventListener("online", check);
+    window.addEventListener("focus", check);
+    document.addEventListener("visibilitychange", handleVisibility);
     return () => {
-      window.removeEventListener("online", handleOnline);
-      window.removeEventListener("focus", handleFocus);
-      if (refreshTimer) window.clearInterval(refreshTimer);
+      window.removeEventListener("online", check);
+      window.removeEventListener("focus", check);
+      document.removeEventListener("visibilitychange", handleVisibility);
+      window.clearInterval(refreshTimer);
     };
   }, [settings.apiUrl, settings.token]);
 
@@ -594,10 +681,11 @@ export default function Prototype() {
 
   const persistMutation = async (mutation: PendingMutation) => {
     const queue = readQueue();
-    if (!settings.apiUrl || !settings.token) {
+    const connection = resolveConnection(settings);
+    if (!connection.apiUrl || !connection.token) {
       window.localStorage.setItem(QUEUE_KEY, JSON.stringify([...queue, mutation]));
       setConnectionState("queued");
-      setConnectionDetail("Guardado localmente. Conecta Google Sheets para enviarlo.");
+      setConnectionDetail("Guardado localmente. Se enviará cuando la app pueda escribir en Google Sheets.");
       return;
     }
     try {
@@ -689,12 +777,16 @@ export default function Prototype() {
         <BottomNav current={screen} hidden={isKeyboardVisible} onNavigate={navigate} />
       </div>
 
-      <shell.Sheet open={sheet === "settings"} onOpenChange={(open) => setSheet(open ? "settings" : null)} title="Conectar y configurar" description="Pega la URL /exec y el token de tu Web App. Al guardar, la app leerá Corte, Iglesia, Recepción e Invitados y volverá a sincronizar al abrirse.">
+      <shell.Sheet open={sheet === "settings"} onOpenChange={(open) => setSheet(open ? "settings" : null)} title="Configurar" description="La app ya viene conectada a la hoja de la boda y se actualiza sola cada pocos segundos. Aquí puedes ajustar la fecha o apuntar a otra hoja.">
         <div className="sheet-form">
           <label className="field-block" htmlFor="wedding-date"><span>Fecha de la boda</span><shell.Field id="wedding-date" inputMode="numeric" placeholder="2026-10-03" value={settingsDraft.weddingDate} onChange={(event) => setSettingsDraft((current) => ({ ...current, weddingDate: event.target.value }))} /></label>
-          <label className="field-block" htmlFor="api-url"><span>URL del Web App</span><shell.Field id="api-url" inputMode="url" placeholder="https://script.google.com/macros/s/..." value={settingsDraft.apiUrl} onChange={(event) => setSettingsDraft((current) => ({ ...current, apiUrl: event.target.value }))} /></label>
-          <label className="field-block" htmlFor="api-token"><span>Token privado</span><shell.Field id="api-token" type="password" placeholder="Pega el token del Apps Script" value={settingsDraft.token} onChange={(event) => setSettingsDraft((current) => ({ ...current, token: event.target.value }))} /></label>
-          <p className={`connection-message ${connectionState}`}>{connectionState === "syncing" ? "Conectando..." : connectionState === "success" ? "Datos actualizados desde Google Sheets." : connectionState === "error" ? (connectionDetail || "No pudimos conectar. Revisa la URL y el token.") : connectionState === "queued" ? (connectionDetail || "Hay cambios locales por enviar.") : "Sin credenciales, la app funciona con datos de prueba guardados localmente."}</p>
+          <details className="advanced-connection">
+            <summary>Avanzado (opcional)</summary>
+            <p className="sheet-note">Solo si quieres apuntar esta app a otra hoja, por ejemplo una de pruebas. Déjalo vacío para usar la conexión de siempre.</p>
+            <label className="field-block" htmlFor="api-url"><span>URL del Web App</span><shell.Field id="api-url" inputMode="url" placeholder="https://script.google.com/macros/s/..." value={settingsDraft.apiUrl} onChange={(event) => setSettingsDraft((current) => ({ ...current, apiUrl: event.target.value }))} /></label>
+            <label className="field-block" htmlFor="api-token"><span>Token privado</span><shell.Field id="api-token" type="password" placeholder="Solo hace falta para guardar cambios" value={settingsDraft.token} onChange={(event) => setSettingsDraft((current) => ({ ...current, token: event.target.value }))} /></label>
+          </details>
+          <p className={`connection-message ${connectionState}`}>{connectionState === "syncing" ? "Actualizando..." : connectionState === "success" ? "Al día con Google Sheets." : connectionState === "error" ? (connectionDetail || "No pudimos conectar con Google Sheets.") : connectionState === "queued" ? (connectionDetail || "Hay cambios locales por enviar.") : "Leyendo la hoja de la boda."}</p>
           <button className="primary-button" type="button" onClick={async () => {
             shell.hideKeyboard();
             const localDateChanged = settingsDraft.weddingDate !== settings.weddingDate;
@@ -702,12 +794,12 @@ export default function Prototype() {
             const nextSettings = { ...settingsDraft, apiUrl };
             setSettings(nextSettings);
             setSettingsDraft((current) => ({ ...current, apiUrl }));
-            if (!apiUrl || !settingsDraft.token) { setConnectionState("idle"); setSheet(null); return; }
-            if (!apiUrl.endsWith("/exec") && !apiUrl.endsWith("/dev")) {
+            if (apiUrl && !apiUrl.endsWith("/exec") && !apiUrl.endsWith("/dev")) {
               setConnectionState("error");
               setConnectionDetail("La URL tiene que terminar en /exec o /dev. Copia la URL de la implementación del Web App.");
               return;
             }
+            if (!resolveConnection(nextSettings).apiUrl) { setConnectionState("idle"); setSheet(null); return; }
             if (localDateChanged) {
               try {
                 await sendMutation(nextSettings, { hoja: "Config", payload: { clave: "fecha_boda", valor: settingsDraft.weddingDate } });
@@ -717,6 +809,8 @@ export default function Prototype() {
               }
             }
             await syncFromSheet(nextSettings, localDateChanged ? settingsDraft.weddingDate : undefined);
+            lastFullSync.current = Date.now();
+            lastVersion.current = await fetchVersion(nextSettings);
           }}><ReloadIcon /> Guardar y sincronizar</button>
         </div>
       </shell.Sheet>

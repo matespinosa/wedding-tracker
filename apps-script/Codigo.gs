@@ -23,6 +23,7 @@ const HOJAS_FISICAS = {
   Iglesia: 'Tracker_Iglesia',
   Recepcion: 'Tracker_Recepcion',
   InvitadosExtra: 'Tracker_InvitadosExtra',
+  Version: 'Tracker_Version',
 };
 
 const SCHEMAS = {
@@ -32,6 +33,7 @@ const SCHEMAS = {
   Iglesia: ['clave', 'titulo', 'valor', 'estado', 'responsable', 'notas', 'fecha_limite'],
   Recepcion: ['clave', 'titulo', 'valor', 'estado', 'responsable', 'notas', 'fecha_limite'],
   InvitadosExtra: ['id', 'nombre', 'rsvp', 'transporte', 'mesa', 'invitado_a', 'plato', 'acompanantes', 'notas', 'actualizado_en'],
+  Version: ['version'],
 };
 
 const HOJAS_POR_CLAVE = { Config: true, Iglesia: true, Recepcion: true };
@@ -41,11 +43,18 @@ function libro_() {
   return SpreadsheetApp.openById(SPREADSHEET_ID);
 }
 
+/**
+ * Aviso NO bloqueante. `SpreadsheetApp.getUi().alert()` abre un modal dentro de
+ * la hoja de cálculo, no en el editor de Apps Script: si ejecutas la función
+ * desde el editor nadie hace clic en Aceptar y la ejecución se queda colgada
+ * hasta el límite de 6 minutos. `toast` se muestra y desaparece solo.
+ */
 function avisar_(message) {
+  Logger.log(message);
   try {
-    SpreadsheetApp.getUi().alert(message);
+    SpreadsheetApp.getActiveSpreadsheet().toast(message, 'Wedding Tracker', 8);
   } catch (error) {
-    Logger.log(message);
+    // Sin hoja activa (proyecto independiente): con el log basta.
   }
 }
 
@@ -54,6 +63,7 @@ function onOpen() {
     SpreadsheetApp.getUi()
       .createMenu('Wedding Tracker')
       .addItem('Crear pestañas del tracker (no toca la invitación)', 'configurarHojasTracker')
+      .addItem('Activar avisos en vivo para la app', 'instalarTriggers')
       .addToUi();
   } catch (error) {
     Logger.log('onOpen solo aplica si el script está vinculado al Sheet.');
@@ -62,7 +72,11 @@ function onOpen() {
 
 function doGet(e) {
   try {
-    validarToken_(e && e.parameter && e.parameter.token);
+    // La lectura es pública a propósito: la app estática no puede guardar un
+    // secreto. La escritura (doPost) sigue exigiendo el token.
+    if (e && e.parameter && e.parameter.check) {
+      return responder_({ ok: true, version: leerVersion_() });
+    }
     const data = leerTodo_();
     data.ok = true;
     return responder_(data);
@@ -95,6 +109,7 @@ function doPost(e) {
         throw new Error('Acción no soportada. Usa crear, actualizar o borrar.');
     }
 
+    bumpVersion_();
     SpreadsheetApp.flush();
     return responder_({ ok: true, data: result });
   } catch (error) {
@@ -135,6 +150,7 @@ function configurarHojasTracker() {
   sembrarSiVacia_('Iglesia', iglesiaRows);
   asegurarFilasPorClave_('Iglesia', iglesiaRows);
   sembrarSiVacia_('Recepcion', datosRecepcion_());
+  bumpVersion_();
 
   const protegidas = spreadsheet.getSheets()
     .map(function (sheet) { return sheet.getName(); })
@@ -493,6 +509,63 @@ function asegurarEncabezados_(sheet, headers) {
   sheet.autoResizeColumns(1, headers.length);
 }
 
+/**
+ * Latido de versión.
+ *
+ * Tracker_Version!A2 (A1 es el encabezado) guarda un número que sube con cada
+ * cambio. La app sondea esa celda por CSV publicado —barato y sin cuota de
+ * Apps Script— y solo pide el JSON completo cuando el número cambia.
+ */
+function leerVersion_() {
+  try {
+    const valor = obtenerHoja_('Version').getRange(2, 1).getDisplayValue();
+    return String(valor || '0');
+  } catch (error) {
+    return '0';
+  }
+}
+
+function bumpVersion_() {
+  try {
+    const ahora = Date.now();
+    // Antirrebote: escribir la versión es a su vez un cambio en el libro, así
+    // que sin esto el trigger onChange podría dispararse a sí mismo en bucle.
+    // También evita cien escrituras seguidas cuando alguien edita a ritmo vivo.
+    const props = PropertiesService.getScriptProperties();
+    const ultima = Number(props.getProperty('ultimoBump') || 0);
+    if (ahora - ultima < 2000) return;
+    props.setProperty('ultimoBump', String(ahora));
+    obtenerHoja_('Version').getRange(2, 1).setValue(String(ahora));
+  } catch (error) {
+    Logger.log('No se pudo actualizar Tracker_Version: ' + error);
+  }
+}
+
+/**
+ * Trigger instalable onChange: cubre las ediciones hechas a mano en la hoja y
+ * las respuestas del formulario de la invitación (llegan como INSERT_ROW).
+ * Solo lee el tipo de cambio y escribe Tracker_Version; nunca toca la hoja que
+ * cambió, así que las pestañas de la invitación quedan intactas.
+ */
+function alCambiarLibro(e) {
+  const tipo = e && e.changeType;
+  // Un cambio de formato no altera los datos que lee la app.
+  if (tipo === 'FORMAT') return;
+  bumpVersion_();
+}
+
+function instalarTriggers() {
+  const existentes = ScriptApp.getProjectTriggers().filter(function (trigger) {
+    return trigger.getHandlerFunction() === 'alCambiarLibro';
+  });
+  existentes.forEach(function (trigger) { ScriptApp.deleteTrigger(trigger); });
+
+  ScriptApp.newTrigger('alCambiarLibro').forSpreadsheet(SPREADSHEET_ID).onChange().create();
+  bumpVersion_();
+  avisar_('Listo. La app verá los cambios de esta hoja en unos segundos.');
+  return 'Activador instalado.';
+}
+
 function validarToken_(token) {
   if (!TOKEN || TOKEN === 'CAMBIA_ESTE_TOKEN_LARGO_Y_PRIVADO') throw new Error('Configura TOKEN antes de publicar.');
   if (!token || token !== TOKEN) throw new Error('Token inválido.');
@@ -500,6 +573,7 @@ function validarToken_(token) {
 
 function validarHoja_(name) {
   if (!name) throw new Error('Hoja no permitida.');
+  if (name === 'Version') throw new Error('Hoja no permitida.');
   if (HOJAS_FISICAS[name] || name === 'Invitados') return;
   throw new Error('Hoja no permitida.');
 }

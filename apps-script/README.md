@@ -24,6 +24,7 @@ El RSVP y el plato de quien ya llenó el formulario se leen de Confirmacion. Si 
 | `Tracker_Recepcion` | Hora, lugar, fotografía, DJ, itinerario, baile, transporte, contrato |
 | `Tracker_Tareas` | Checklist de Iglesia / Recepción / General |
 | `Tracker_InvitadosExtra` | Transporte, mesa y gente que agreguen desde esta app |
+| `Tracker_Version` | Una sola celda con un número que sube en cada cambio. Es lo que la app sondea para enterarse en segundos |
 
 Los invitados de la recepción salen del cruce de Confirmacion + lista + envío. No hay una pestaña `Invitados` aparte, para no chocar con la invitación.
 
@@ -36,6 +37,7 @@ Si el formulario de la invitación ya tiene un proyecto en **Extensiones > Apps 
 3. Cambia `CAMBIA_ESTE_TOKEN_LARGO_Y_PRIVADO` por un token aleatorio de al menos 32 caracteres.
 4. Guarda y ejecuta **una vez** `configurarHojasTracker`.
 5. Acepta los permisos (tiene que poder abrir ese Spreadsheet).
+6. Ejecuta **una vez** `instalarTriggers` (o usa el menú **Wedding Tracker → Activar avisos en vivo para la app**). Instala un trigger `onChange` que actualiza `Tracker_Version` cada vez que alguien edita la hoja, incluidas las respuestas del formulario de la invitación. Lo único que hace ese trigger es escribir esa celda: no lee ni modifica la pestaña que cambió. Lleva un antirrebote de 2 segundos para no dispararse a sí mismo en bucle; si dos ediciones caen dentro de esa ventana, la segunda puede tardar hasta la relectura completa de los 5 minutos en aparecer.
 
 La función solo inserta pestañas `Tracker_*` si faltan y agrega filas nuevas por `clave` cuando una pestaña ya existe. No sobreescribe información que ya hayas editado. Confirmacion y el resto de la invitación quedan como están.
 
@@ -48,16 +50,28 @@ La función solo inserta pestañas `Tracker_*` si faltan y agrega filas nuevas p
 
 Cada cambio de `Codigo.gs` pide una versión nueva en **Administrar implementaciones**.
 
-El GET (`?token=...`) responde `Config`, `Tareas`, `Corte`, `Iglesia`, `Recepcion` e `Invitados` (estos últimos calculados, no son una pestaña). El POST solo escribe pestañas `Tracker_*`.
+El GET responde `Config`, `Tareas`, `Corte`, `Iglesia`, `Recepcion` e `Invitados` (estos últimos calculados, no son una pestaña) y **no pide token**: una app estática no puede guardar un secreto, así que la lectura es pública a propósito. El POST sí exige el token y solo escribe pestañas `Tracker_*`.
 
-## 3. Conectar la app
+`?check=1` devuelve únicamente `{ ok: true, version }`. Es el respaldo del sondeo si no publicas el CSV.
 
-1. Abre Wedding Tracker y toca el engranaje en Resumen.
-2. Pega la URL del Web App y el mismo token.
-3. Toca **Guardar y sincronizar**.
+## 3. Publicar el latido de versión
 
-La app lee el Sheet automáticamente al abrirse cuando las credenciales ya están guardadas, al volver a enfocar la ventana y cada minuto mientras está abierta. También puedes volver a tocar **Guardar y sincronizar** para forzar una lectura. Cada POST usa `Content-Type: text/plain;charset=utf-8`; ordenar filas en las pestañas `Tracker_*` no rompe la sincronización porque busca por `id` o `clave`. Si editas sin conexión, el cambio queda en una cola local y se reintenta al recuperar la conexión.
+1. **Archivo → Compartir → Publicar en la web**.
+2. En el desplegable elige **solo la pestaña `Tracker_Version`** y el formato **CSV**. No publiques el documento entero.
+3. Copia la URL, del estilo `https://docs.google.com/spreadsheets/d/e/2PACX-.../pub?gid=...&single=true&output=csv`.
+
+Eso expone una celda con un número, nada más. La app la consulta cada 12 segundos —es una petición de pocos bytes que sirve la infraestructura estática de Google, sin gastar cuota de Apps Script— y solo pide el JSON completo cuando el número cambió.
+
+## 4. Conectar la app
+
+Nadie tiene que teclear credenciales. Pega la URL `/exec` en `DEFAULT_API_URL` y la URL del CSV en `VERSION_CSV_URL`, ambas al inicio de `src/Prototype.tsx`, y guarda el token como secret `SHEET_TOKEN` del repositorio (el workflow de GitHub Pages lo inyecta en el build). Desde ese momento cualquier dispositivo que abra la app ve los datos reales de inmediato.
+
+Los campos de URL y token del engranaje siguen ahí, dentro de **Avanzado (opcional)**, por si quieres apuntar la app a una hoja de pruebas.
+
+La app lee al abrirse, al volver a enfocar la ventana, al recuperar conexión y cada vez que el número de versión cambia. Además fuerza una lectura completa cada cinco minutos por si el trigger se perdiera un evento. Cada POST usa `Content-Type: text/plain;charset=utf-8`; ordenar filas en las pestañas `Tracker_*` no rompe la sincronización porque busca por `id` o `clave`. Si editas sin conexión, el cambio queda en una cola local y se reintenta al recuperar la conexión.
 
 ## Privacidad
 
-La interfaz puede ser un sitio estático; los nombres viven en tu Google Sheet. Quien tenga la URL del Web App y el token puede leer esos datos. Trátalos como credenciales.
+Esta configuración cambia la privacidad a propósito: **la lectura es pública**. Cualquiera que descubra la URL `/exec` puede ver los nombres, teléfonos y RSVP de tus invitados. Fue una decisión consciente a cambio de que nadie tenga que configurar credenciales.
+
+El token de escritura queda dentro del JavaScript publicado, así que tampoco es un secreto real; lo que protege es el alcance: `validarHoja_` y `esHojaTracker_` impiden escribir fuera de las pestañas `Tracker_*`, de modo que Confirmacion, Lista de invitados y la hoja de envío no se pueden tocar desde la API.
