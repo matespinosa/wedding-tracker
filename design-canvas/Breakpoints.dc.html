@@ -1,0 +1,181 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600&family=Instrument+Serif&display=swap">
+  <style>
+    body { margin: 0; font-family: "Instrument Sans", "Helvetica Neue", Arial, sans-serif; }
+    body *, body *::before, body *::after { box-sizing: border-box; }
+    a { color: #c0563d; text-decoration: none; }
+    a:hover { color: #8f3d28; }
+  </style>
+</helmet>
+
+<div style="width: 1060px; height: 640px; display: flex; flex-direction: column; gap: 26px; padding: 34px 36px; background: #f5f1ec; color: #1c1917;">
+
+  <header>
+    <h1 style="margin: 0; font-family: 'Instrument Serif', Georgia, serif; font-size: 32px; font-weight: 400; letter-spacing: -0.025em; line-height: 1;">Cómo se adapta en cada dispositivo</h1>
+    <p style="margin: 10px 0 0; color: #78706b; font-size: 12px; line-height: 1.4;">Una sola app, cuatro comportamientos. La navegación y el número de columnas son lo único que cambia de fondo, el resto es el mismo sistema.</p>
+  </header>
+
+  <div style="flex: 1; min-height: 0; display: grid; grid-template-columns: 150px 176px 292px 300px; gap: 16px; align-items: start;">
+
+    <div style="display: flex; flex-direction: column; gap: 16px;">
+      <div style="display: flex; height: 132px; align-items: flex-end;">
+        <svg width="61" height="132" viewBox="0 0 61 132" aria-hidden="true">
+          <rect x="0.5" y="0.5" width="60" height="131" rx="9" fill="#ffffff" stroke="#e6dfd7"/>
+          <rect x="9" y="11" width="30" height="7" rx="3.5" fill="#ded8d1"/>
+          <rect x="9" y="25" width="43" height="28" rx="5" fill="#f0ebe4"/>
+          <rect x="9" y="58" width="43" height="11" rx="4" fill="#f0ebe4"/>
+          <rect x="9" y="73" width="43" height="11" rx="4" fill="#f0ebe4"/>
+          <rect x="9" y="88" width="43" height="11" rx="4" fill="#f0ebe4"/>
+          <path d="M0 112h61v10.5a9 9 0 0 1-9 9H9a9 9 0 0 1-9-9z" fill="#f5f1ec"/>
+          <rect x="8" y="118" width="8" height="4" rx="2" fill="#c0563d"/>
+          <rect x="21" y="118" width="8" height="4" rx="2" fill="#c4bcb4"/>
+          <rect x="34" y="118" width="8" height="4" rx="2" fill="#c4bcb4"/>
+          <rect x="47" y="118" width="6" height="4" rx="2" fill="#c4bcb4"/>
+        </svg>
+      </div>
+      <div>
+        <strong style="display: block; font-size: 14px; font-weight: 600; line-height: 1.2;">Teléfono</strong>
+        <span style="display: block; margin-top: 5px; color: #c0563d; font-size: 11px; font-weight: 500;">menos de 768px</span>
+      </div>
+      <ul style="display: flex; flex-direction: column; gap: 8px; margin: 0; padding: 0; list-style: none; color: #78706b; font-size: 11.5px; line-height: 1.35;">
+        <li>Barra inferior de 4 destinos</li>
+        <li>Una columna, cards a ancho completo</li>
+        <li>Sin marco de iPhone ni de Android</li>
+        <li>Safe areas reales con env()</li>
+      </ul>
+    </div>
+
+    <div style="display: flex; flex-direction: column; gap: 16px;">
+      <div style="display: flex; height: 132px; align-items: flex-end;">
+        <svg width="99" height="132" viewBox="0 0 99 132" aria-hidden="true">
+          <rect x="0.5" y="0.5" width="98" height="131" rx="9" fill="#ffffff" stroke="#e6dfd7"/>
+          <path d="M0 9.5A9 9 0 0 1 9 .5h9v131H9a9 9 0 0 1-9-9z" fill="#f5f1ec"/>
+          <rect x="5" y="14" width="8" height="8" rx="2.5" fill="#c0563d"/>
+          <rect x="5" y="27" width="8" height="8" rx="2.5" fill="#c4bcb4"/>
+          <rect x="5" y="40" width="8" height="8" rx="2.5" fill="#c4bcb4"/>
+          <rect x="5" y="53" width="8" height="8" rx="2.5" fill="#c4bcb4"/>
+          <rect x="26" y="12" width="34" height="7" rx="3.5" fill="#ded8d1"/>
+          <rect x="26" y="27" width="30" height="16" rx="4" fill="#f0ebe4"/>
+          <rect x="60" y="27" width="30" height="16" rx="4" fill="#f0ebe4"/>
+          <rect x="26" y="47" width="30" height="16" rx="4" fill="#f0ebe4"/>
+          <rect x="60" y="47" width="30" height="16" rx="4" fill="#f0ebe4"/>
+          <rect x="26" y="69" width="64" height="24" rx="5" fill="#f0ebe4"/>
+          <rect x="26" y="98" width="64" height="10" rx="4" fill="#f0ebe4"/>
+          <rect x="26" y="112" width="64" height="10" rx="4" fill="#f0ebe4"/>
+        </svg>
+      </div>
+      <div>
+        <strong style="display: block; font-size: 14px; font-weight: 600; line-height: 1.2;">Tablet</strong>
+        <span style="display: block; margin-top: 5px; color: #c0563d; font-size: 11px; font-weight: 500;">768px a 1023px</span>
+      </div>
+      <ul style="display: flex; flex-direction: column; gap: 8px; margin: 0; padding: 0; list-style: none; color: #78706b; font-size: 11.5px; line-height: 1.35;">
+        <li>Riel lateral de 88px con iconos</li>
+        <li>Métricas clave en 2 x 2</li>
+        <li>Una columna ancha de contenido</li>
+        <li>Igual en vertical y horizontal</li>
+      </ul>
+    </div>
+
+    <div style="display: flex; flex-direction: column; gap: 16px;">
+      <div style="display: flex; height: 132px; align-items: flex-end;">
+        <svg width="211" height="132" viewBox="0 0 211 132" aria-hidden="true">
+          <rect x="0.5" y="0.5" width="210" height="131" rx="9" fill="#ffffff" stroke="#e6dfd7"/>
+          <path d="M0 9.5A9 9 0 0 1 9 .5h29v131H9a9 9 0 0 1-9-9z" fill="#f5f1ec"/>
+          <rect x="8" y="12" width="22" height="6" rx="3" fill="#c0563d"/>
+          <rect x="8" y="25" width="22" height="6" rx="3" fill="#d9d2ca"/>
+          <rect x="8" y="35" width="22" height="6" rx="3" fill="#d9d2ca"/>
+          <rect x="8" y="45" width="22" height="6" rx="3" fill="#d9d2ca"/>
+          <rect x="8" y="55" width="22" height="6" rx="3" fill="#d9d2ca"/>
+          <rect x="8" y="104" width="22" height="20" rx="4" fill="#ffffff"/>
+          <rect x="47" y="13" width="52" height="8" rx="4" fill="#ded8d1"/>
+          <rect x="47" y="30" width="36" height="19" rx="4" fill="#f0ebe4"/>
+          <rect x="87" y="30" width="36" height="19" rx="4" fill="#f0ebe4"/>
+          <rect x="127" y="30" width="36" height="19" rx="4" fill="#f0ebe4"/>
+          <rect x="167" y="30" width="36" height="19" rx="4" fill="#f0ebe4"/>
+          <rect x="47" y="55" width="96" height="30" rx="5" fill="#f0ebe4"/>
+          <rect x="47" y="89" width="96" height="30" rx="5" fill="#f0ebe4"/>
+          <rect x="147" y="55" width="56" height="20" rx="5" fill="#fbefea"/>
+          <rect x="147" y="79" width="56" height="40" rx="5" fill="#f0ebe4"/>
+        </svg>
+      </div>
+      <div>
+        <strong style="display: block; font-size: 14px; font-weight: 600; line-height: 1.2;">Laptop</strong>
+        <span style="display: block; margin-top: 5px; color: #c0563d; font-size: 11px; font-weight: 500;">1024px a 1439px</span>
+      </div>
+      <ul style="display: flex; flex-direction: column; gap: 8px; margin: 0; padding: 0; list-style: none; color: #78706b; font-size: 11.5px; line-height: 1.35;">
+        <li>Barra lateral de 260px con etiquetas y contadores</li>
+        <li>Cuatro métricas visibles en todas las pantallas</li>
+        <li>Cuerpo en dos columnas, 680px y el resto</li>
+        <li>Invitados pasa de cards a tabla</li>
+      </ul>
+    </div>
+
+    <div style="display: flex; flex-direction: column; gap: 16px;">
+      <div style="display: flex; height: 132px; align-items: flex-end;">
+        <svg width="234" height="132" viewBox="0 0 234 132" aria-hidden="true">
+          <rect x="0.5" y="0.5" width="233" height="131" rx="9" fill="#f5f1ec" stroke="#e6dfd7"/>
+          <path d="M0 9.5A9 9 0 0 1 9 .5h29v131H9a9 9 0 0 1-9-9z" fill="#ffffff"/>
+          <rect x="8" y="12" width="22" height="6" rx="3" fill="#c0563d"/>
+          <rect x="8" y="25" width="22" height="6" rx="3" fill="#d9d2ca"/>
+          <rect x="8" y="35" width="22" height="6" rx="3" fill="#d9d2ca"/>
+          <rect x="8" y="45" width="22" height="6" rx="3" fill="#d9d2ca"/>
+          <rect x="8" y="55" width="22" height="6" rx="3" fill="#d9d2ca"/>
+          <rect x="8" y="104" width="22" height="20" rx="4" fill="#f5f1ec"/>
+          <rect x="60" y="13" width="52" height="8" rx="4" fill="#ded8d1"/>
+          <rect x="60" y="30" width="36" height="19" rx="4" fill="#ffffff"/>
+          <rect x="100" y="30" width="36" height="19" rx="4" fill="#ffffff"/>
+          <rect x="140" y="30" width="36" height="19" rx="4" fill="#ffffff"/>
+          <rect x="180" y="30" width="36" height="19" rx="4" fill="#ffffff"/>
+          <rect x="60" y="55" width="96" height="30" rx="5" fill="#ffffff"/>
+          <rect x="60" y="89" width="96" height="30" rx="5" fill="#ffffff"/>
+          <rect x="160" y="55" width="56" height="20" rx="5" fill="#fbefea"/>
+          <rect x="160" y="79" width="56" height="40" rx="5" fill="#ffffff"/>
+          <path d="M60 126h156" stroke="#c4bcb4" stroke-width="1" stroke-dasharray="3 3"/>
+          <path d="M60 123v6M216 123v6" stroke="#c4bcb4" stroke-width="1"/>
+          <path d="M44 126h10M222 126h10" stroke="#c4bcb4" stroke-width="1" stroke-dasharray="3 3"/>
+        </svg>
+      </div>
+      <div>
+        <strong style="display: block; font-size: 14px; font-weight: 600; line-height: 1.2;">Desktop grande</strong>
+        <span style="display: block; margin-top: 5px; color: #c0563d; font-size: 11px; font-weight: 500;">1440px o más</span>
+      </div>
+      <ul style="display: flex; flex-direction: column; gap: 8px; margin: 0; padding: 0; list-style: none; color: #78706b; font-size: 11.5px; line-height: 1.35;">
+        <li>Misma barra lateral, siempre fija</li>
+        <li>Contenido con ancho máximo de 1320px y márgenes que crecen</li>
+        <li>La tabla de invitados suma columnas en vez de estirarse</li>
+      </ul>
+    </div>
+
+  </div>
+
+  <div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px;">
+
+    <div style="display: flex; flex-direction: column; gap: 9px; padding: 16px 18px; border-radius: 18px; background: #ffffff;">
+      <strong style="font-size: 12.5px; font-weight: 600; line-height: 1.2;">Fuera el marco de dispositivo</strong>
+      <span style="color: #78706b; font-size: 11px; line-height: 1.4;">El bezel de iPhone y Pixel se queda solo en el prototipo interno. En producción la app pinta a pantalla completa desde el primer pixel.</span>
+    </div>
+
+    <div style="display: flex; flex-direction: column; gap: 9px; padding: 16px 18px; border-radius: 18px; background: #ffffff;">
+      <strong style="font-size: 12.5px; font-weight: 600; line-height: 1.2;">Safe areas de verdad</strong>
+      <span style="color: #78706b; font-size: 11px; line-height: 1.4;">Los 34px fijos y el padding superior de 64px pasan a env(safe-area-inset-*), así el notch y la barra de gestos se respetan en cualquier teléfono.</span>
+    </div>
+
+    <div style="display: flex; flex-direction: column; gap: 9px; padding: 16px 18px; border-radius: 18px; background: #ffffff;">
+      <strong style="font-size: 12.5px; font-weight: 600; line-height: 1.2;">Escala de texto por tamaño</strong>
+      <span style="color: #78706b; font-size: 11px; line-height: 1.4;">El cuerpo sube de 12.5px a 13px desde 1024px y los títulos de 30px a 34px. Los blancos de toque se mantienen en 44px en todos los tamaños.</span>
+    </div>
+
+  </div>
+
+</div>
+</x-dc>
+</body>
+</html>
