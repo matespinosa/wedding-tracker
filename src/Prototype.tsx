@@ -1305,7 +1305,9 @@ function SectionScreen({
                 <div className="group-title"><span>Pendientes por cerrar</span></div>
                 <div className="responsible-filter" role="group" aria-label="Filtrar por responsable">
                   <span className="responsible-filter-label">Responsable</span>
-                  {(["Todas", "Novio", "Novia", "Ambos"] as const).map((option) => <button key={option} className={filter === option ? "active" : ""} type="button" onClick={() => setFilter(option)}>{option}</button>)}
+                  <div className="responsible-filter-chips">
+                    {(["Todas", "Novio", "Novia", "Ambos"] as const).map((option) => <button key={option} className={filter === option ? "active" : ""} type="button" onClick={() => setFilter(option)}>{option}</button>)}
+                  </div>
                 </div>
               </div>
               <div className="task-list">{pending.map((task) => <TaskRow key={task.id} task={task} onToggle={onToggle} />)}{!pending.length ? <div className="empty-state"><CheckIcon /><strong>Todo listo por aquí</strong><span>Prueba otro filtro o agrega un pendiente.</span></div> : null}</div>
@@ -1488,16 +1490,10 @@ function TaskRow({ task, onToggle }: { task: Task; onToggle: (id: string) => voi
       <button className="task-check" type="button" aria-label={done ? `Marcar ${task.titulo} como pendiente` : `Marcar ${task.titulo} como listo`} onClick={() => onToggle(task.id)}>{done ? <CheckIcon /> : null}</button>
       <div className="task-copy">
         <strong>{task.titulo}</strong>
-        {!done ? <span>{task.detalle}</span> : null}
+        {!done ? <span>{task.detalle}{dueParts ? <em className={`task-due ${late ? "late" : ""}`}>{late ? "venció" : "vence"} {dueParts.short}</em> : null}</span> : null}
         {!done ? <span className="task-tags"><b>{task.responsable}</b><b className={task.prioridad === "Alta" ? "high" : ""}>{task.prioridad}</b></span> : null}
       </div>
-      {!done ? (
-        <span className="task-side">
-          {/* La fecha límite es el dato que decide el orden del día: se ve en la fila. */}
-          {dueParts ? <span className={`task-due ${late ? "late" : ""}`}>{dueParts.short}</span> : null}
-          <small>{task.responsable}</small>
-        </span>
-      ) : null}
+      {!done ? <small>{task.responsable}</small> : null}
     </article>
   );
 }

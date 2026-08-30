@@ -47,8 +47,9 @@
 }
 
 .page-shell {
+  --shell-gutter: 18px;
   min-height: 100%;
-  padding: 64px 18px calc(104px + var(--device-safe-area-bottom, 34px));
+  padding: 64px var(--shell-gutter) calc(104px + var(--device-safe-area-bottom, 34px));
 }
 
 .summary-header,
@@ -1587,8 +1588,9 @@
 
 @media (max-width: 360px) {
   .page-shell {
-    padding-right: 14px;
-    padding-left: 14px;
+    --shell-gutter: 14px;
+    padding-right: var(--shell-gutter);
+    padding-left: var(--shell-gutter);
   }
 
   .filter-row {
@@ -1658,6 +1660,39 @@
 /* El atributo hidden tiene que ganarle al display: flex del breakpoint. */
 .sidebar-countdown[hidden] {
   display: none !important;
+}
+
+/* El encabezado de sección se queda fijo: al hacer scroll se perdían el título
+   y el botón de volver, y la pantalla quedaba sin punto de referencia. */
+.wedding-app[data-shell="web"] .tasks-page > .screen-header,
+.wedding-app[data-shell="web"] .guests-page > .screen-header {
+  position: sticky;
+  z-index: 4;
+  top: 0;
+  margin: calc(-1 * (24px + env(safe-area-inset-top, 0px))) calc(-1 * var(--shell-gutter)) 0;
+  padding: calc(24px + env(safe-area-inset-top, 0px)) var(--shell-gutter) 10px;
+  background: var(--paper);
+}
+
+/* El check mide 22px por diseño; el área que responde al dedo, 44px. */
+.task-check {
+  position: relative;
+}
+
+.task-check::after {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 44px;
+  height: 44px;
+  transform: translate(-50%, -50%);
+  content: "";
+}
+
+.reception-card-heading button {
+  min-height: 32px;
+  margin: -6px -8px -6px 0;
+  padding: 0 8px;
 }
 
 /* --- Cuenta regresiva ------------------------------------------------ */
@@ -1918,27 +1953,17 @@
   grid-row: 3;
 }
 
-.task-side {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  align-items: flex-end;
-}
-
 .task-due {
-  padding: 6px 9px;
-  border-radius: 14px;
-  background: #f5e8e3;
+  margin-left: 7px;
   color: var(--urgent);
-  font-size: 9.5px;
-  font-weight: 500;
-  line-height: 1;
+  font-style: normal;
+  font-weight: 600;
   white-space: nowrap;
 }
 
-.task-due.late {
-  background: var(--urgent);
-  color: #faf8f5;
+.task-due.late::before {
+  margin-right: 4px;
+  content: "•";
 }
 
 /* --- Recepción: pestañas y filtro ------------------------------------ */
@@ -1977,27 +2002,47 @@
   gap: 10px;
 }
 
+.panel-head > * {
+  min-width: 0;
+}
+
 .responsible-filter {
   display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
+  min-width: 0;
+  gap: 8px;
   align-items: center;
 }
 
 .responsible-filter-label {
+  flex: 0 0 auto;
   color: var(--soft);
   font-size: 10.5px;
   white-space: nowrap;
 }
 
+/* En pantallas angostas los chips se deslizan en lugar de romper la fila. */
+.responsible-filter-chips {
+  display: flex;
+  min-width: 0;
+  padding-bottom: 2px;
+  gap: 6px;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.responsible-filter-chips::-webkit-scrollbar {
+  display: none;
+}
+
 .responsible-filter button {
-  min-height: 28px;
-  padding: 0 12px;
+  min-height: 32px;
+  flex: 0 0 auto;
+  padding: 0 13px;
   border: 1px solid #e6dfd7;
-  border-radius: 16px;
+  border-radius: 18px;
   background: transparent;
   color: var(--muted);
-  font-size: 10.5px;
+  font-size: 11px;
   font-weight: 500;
   white-space: nowrap;
 }
@@ -2208,8 +2253,9 @@
   }
 
   .wedding-app[data-shell="web"] .page-shell {
-    padding-right: 28px;
-    padding-left: 28px;
+    --shell-gutter: 28px;
+    padding-right: var(--shell-gutter);
+    padding-left: var(--shell-gutter);
     padding-bottom: 40px;
   }
 
@@ -2470,7 +2516,8 @@
 
   /* Page frame */
   .wedding-app[data-shell="web"] .page-shell {
-    padding: calc(30px + env(safe-area-inset-top, 0px)) 36px 36px;
+    --shell-gutter: 36px;
+    padding: calc(30px + env(safe-area-inset-top, 0px)) var(--shell-gutter) 36px;
   }
 
   .wedding-app[data-shell="web"] .summary-header h1,
