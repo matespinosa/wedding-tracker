@@ -1,0 +1,67 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600&family=Instrument+Serif&display=swap">
+  <style>
+    body { margin: 0; background: #f5f1ec; font-family: "Instrument Sans", "Helvetica Neue", Arial, sans-serif; -webkit-font-smoothing: antialiased; }
+    * { box-sizing: border-box; }
+    a { color: #c0563d; } a:hover { color: #8f3d28; }
+  </style>
+</helmet>
+
+<div style="display: flex; width: 390px; min-height: 640px; flex-direction: column; justify-content: flex-end; background: rgba(28, 25, 23, 0.28)">
+
+  <div style="display: flex; padding: 12px 20px 26px; border-radius: 28px 28px 0 0; flex-direction: column; gap: 18px; background: #ffffff">
+
+    <span style="width: 38px; height: 4px; align-self: center; border-radius: 2px; background: #e2dcd5"></span>
+
+    <div style="display: flex; flex-direction: column; gap: 6px">
+      <h2 style="margin: 0; color: #1c1917; font-family: 'Instrument Serif', Georgia, serif; font-size: 22px; font-weight: 400; letter-spacing: -0.02em; line-height: 1.1">Protocolo de la iglesia</h2>
+      <p style="margin: 0; color: #78706b; font-size: 11.5px; line-height: 1.45">Faltan 2 documentos · responsable Ambos</p>
+    </div>
+
+    <div style="display: grid; gap: 9px">
+      <span style="color: #78706b; font-size: 11.5px; font-weight: 600">Estado</span>
+      <div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px">
+        <button type="button" style="min-height: 42px; padding: 0 8px; border: 1px solid #e2dcd5; border-radius: 14px; background: #faf8f5; color: #78706b; font-size: 12px; font-weight: 500">Pendiente</button>
+        <button type="button" style="min-height: 42px; padding: 0 8px; border: 1px solid #1c1917; border-radius: 14px; background: #1c1917; color: #faf8f5; font-size: 12px; font-weight: 500">En progreso</button>
+        <button type="button" style="min-height: 42px; padding: 0 8px; border: 1px solid #e2dcd5; border-radius: 14px; background: #faf8f5; color: #78706b; font-size: 12px; font-weight: 500">Listo</button>
+      </div>
+    </div>
+
+    <div style="display: grid; gap: 9px">
+      <span style="color: #78706b; font-size: 11.5px; font-weight: 600">Responsable</span>
+      <div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px">
+        <button type="button" style="min-height: 42px; padding: 0 8px; border: 1px solid #e2dcd5; border-radius: 14px; background: #faf8f5; color: #78706b; font-size: 12px; font-weight: 500">Novio</button>
+        <button type="button" style="min-height: 42px; padding: 0 8px; border: 1px solid #e2dcd5; border-radius: 14px; background: #faf8f5; color: #78706b; font-size: 12px; font-weight: 500">Novia</button>
+        <button type="button" style="min-height: 42px; padding: 0 8px; border: 1px solid #1c1917; border-radius: 14px; background: #1c1917; color: #faf8f5; font-size: 12px; font-weight: 500">Ambos</button>
+      </div>
+    </div>
+
+    <div style="display: grid; gap: 9px">
+      <div style="display: flex; gap: 8px; align-items: baseline; justify-content: space-between">
+        <span style="color: #78706b; font-size: 11.5px; font-weight: 600">Notas y comentarios</span>
+        <span style="color: #a29a93; font-size: 10px">Se guarda en el Sheet</span>
+      </div>
+      <div style="display: flex; min-height: 104px; padding: 12px 14px; border: 1px solid #ded7d0; border-radius: 14px; background: #faf8f5">
+        <span style="color: #1c1917; font-size: 12.5px; line-height: 1.5">Falta la partida de bautismo de Julieth y el certificado del curso prematrimonial. La secretaría recibe documentos de martes a jueves.</span>
+      </div>
+      <span style="color: #a29a93; font-size: 10px; line-height: 1.4">Esta nota se ve en la card, sin necesidad de abrir el detalle.</span>
+    </div>
+
+    <button type="button" style="display: flex; min-height: 48px; padding: 0 18px; border: 0; border-radius: 16px; gap: 8px; align-items: center; justify-content: center; background: #1c1917; color: #faf8f5; font-size: 13px; font-weight: 500">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="m5 13 4 4L19 7"></path></svg>
+      Guardar cambios
+    </button>
+
+  </div>
+</div>
+</x-dc>
+</body>
+</html>

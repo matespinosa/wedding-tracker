@@ -637,7 +637,7 @@
   border: 0;
   border-radius: 20px;
   grid-template-columns: 36px minmax(0, 1fr) 18px;
-  grid-template-rows: auto auto;
+  grid-template-rows: auto auto auto;
   gap: 6px 11px;
   align-items: center;
   background: var(--surface);
@@ -1014,7 +1014,7 @@
   border: 0;
   border-radius: 20px;
   grid-template-columns: 36px minmax(0, 1fr) auto 16px;
-  grid-template-rows: auto auto;
+  grid-template-rows: auto auto auto;
   gap: 6px 11px;
   align-items: center;
   background: var(--surface);
@@ -1655,6 +1655,364 @@
   padding-bottom: env(safe-area-inset-bottom, 0px);
 }
 
+/* El atributo hidden tiene que ganarle al display: flex del breakpoint. */
+.sidebar-countdown[hidden] {
+  display: none !important;
+}
+
+/* --- Cuenta regresiva ------------------------------------------------ */
+
+.countdown-card {
+  display: flex;
+  margin-top: 16px;
+  padding: 16px 18px;
+  border-radius: 20px;
+  flex-direction: column;
+  gap: 14px;
+  background: var(--surface);
+  box-shadow: 0 1px 2px rgba(28, 25, 23, 0.04), 0 8px 24px rgba(28, 25, 23, 0.045);
+}
+
+.countdown-head {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 12px;
+  align-items: baseline;
+  justify-content: space-between;
+}
+
+.countdown-label {
+  display: flex;
+  gap: 7px;
+  align-items: center;
+  color: var(--soft);
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 0.11em;
+  text-transform: uppercase;
+}
+
+.countdown-label svg {
+  width: 14px;
+  height: 14px;
+}
+
+.countdown-date {
+  color: var(--muted);
+  font-size: 10.5px;
+  line-height: 1.2;
+}
+
+.countdown-units {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.countdown-unit {
+  display: flex;
+  padding: 11px 4px;
+  border-radius: 16px;
+  flex-direction: column;
+  gap: 5px;
+  align-items: center;
+  background: #faf8f5;
+}
+
+.countdown-unit strong {
+  color: var(--ink);
+  font-family: "Instrument Serif", Georgia, serif;
+  font-size: 30px;
+  font-weight: 400;
+  /* Cifras de ancho fijo: sin esto los segundos hacen saltar la fila entera. */
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.02em;
+  line-height: 1;
+}
+
+.countdown-unit small {
+  color: var(--soft);
+  font-size: 9.5px;
+  line-height: 1;
+}
+
+.countdown-unit.dias strong {
+  color: var(--accent);
+}
+
+.countdown-unit.seg strong {
+  color: var(--muted);
+}
+
+.countdown-card.empty,
+.countdown-card.past {
+  gap: 10px;
+}
+
+.countdown-empty-copy {
+  margin: 0;
+  color: var(--muted);
+  font-size: 11.5px;
+  line-height: 1.45;
+}
+
+.countdown-cta {
+  display: flex;
+  min-height: 40px;
+  padding: 0 14px;
+  border: 1px solid #e2dcd5;
+  border-radius: 14px;
+  gap: 7px;
+  align-items: center;
+  justify-content: center;
+  background: #faf8f5;
+  color: var(--ink);
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.countdown-cta svg {
+  width: 14px;
+  height: 14px;
+}
+
+.countdown-past-copy {
+  font-family: "Instrument Serif", Georgia, serif;
+  font-size: 24px;
+  font-weight: 400;
+  line-height: 1.1;
+}
+
+/* --- Requiere tu atención -------------------------------------------- */
+
+.attention-block {
+  display: grid;
+  margin-top: 18px;
+  gap: 10px;
+}
+
+.attention-list {
+  display: grid;
+  gap: 8px;
+}
+
+.attention-card {
+  display: grid;
+  width: 100%;
+  min-height: 64px;
+  padding: 13px 14px;
+  border: 1px solid var(--hairline);
+  border-radius: 20px;
+  grid-template-columns: 22px minmax(0, 1fr) auto;
+  gap: 11px;
+  align-items: center;
+  background: var(--surface);
+  color: var(--ink);
+  text-align: left;
+}
+
+.attention-card > svg {
+  width: 20px;
+  height: 20px;
+  color: var(--accent);
+}
+
+.attention-card.dated {
+  border-color: #f0dbd2;
+  background: #f8ece7;
+}
+
+.attention-card.dated > svg {
+  color: var(--urgent);
+}
+
+.attention-copy {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.attention-copy strong {
+  overflow: hidden;
+  font-size: 12.5px;
+  font-weight: 600;
+  line-height: 1.25;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.attention-copy small {
+  overflow: hidden;
+  color: var(--muted);
+  font-size: 10.5px;
+  line-height: 1.3;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.attention-card.dated .attention-copy strong {
+  color: var(--urgent);
+}
+
+.attention-card.dated .attention-copy small {
+  color: #a5654f;
+}
+
+.attention-chip {
+  padding: 7px 10px;
+  border-radius: 14px;
+  background: #efebe6;
+  color: var(--muted);
+  font-size: 9.5px;
+  font-weight: 500;
+  line-height: 1;
+  white-space: nowrap;
+}
+
+.attention-card.dated .attention-chip {
+  background: var(--surface);
+  color: var(--urgent);
+}
+
+.attention-card.late .attention-chip {
+  background: var(--urgent);
+  color: #faf8f5;
+}
+
+/* --- Nota en las cards de logística ---------------------------------- */
+
+.card-note {
+  display: grid;
+  padding-top: 10px;
+  border-top: 1px solid var(--hairline);
+  grid-template-columns: 16px minmax(0, 1fr);
+  gap: 9px;
+  align-items: start;
+  color: var(--muted);
+  font-size: 11px;
+  line-height: 1.4;
+  text-align: left;
+}
+
+.card-note svg {
+  width: 14px;
+  height: 14px;
+  margin-top: 1px;
+  color: var(--soft);
+}
+
+.card-note.empty {
+  align-items: center;
+  color: var(--soft);
+}
+
+.card-note.empty svg {
+  margin-top: 0;
+  color: var(--faint);
+}
+
+.ceremony-detail-card > .card-note,
+.reception-detail-card > .card-note {
+  grid-column: 1 / -1;
+  grid-row: 3;
+}
+
+.task-side {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  align-items: flex-end;
+}
+
+.task-due {
+  padding: 6px 9px;
+  border-radius: 14px;
+  background: #f5e8e3;
+  color: var(--urgent);
+  font-size: 9.5px;
+  font-weight: 500;
+  line-height: 1;
+  white-space: nowrap;
+}
+
+.task-due.late {
+  background: var(--urgent);
+  color: #faf8f5;
+}
+
+/* --- Recepción: pestañas y filtro ------------------------------------ */
+
+.reception-tabs {
+  margin: 14px 0 0;
+}
+
+.tab-count {
+  margin-left: 7px;
+  padding: 3px 6px;
+  border-radius: 9px;
+  background: #efebe6;
+  color: var(--muted);
+  font-size: 9.5px;
+  font-weight: 600;
+  line-height: 1;
+}
+
+.filter-row button.active .tab-count {
+  background: rgba(250, 248, 245, 0.18);
+  color: #faf8f5;
+}
+
+.reception-panel {
+  margin-top: 14px;
+}
+
+.reception-module[data-tab="Información"] .reception-panel[data-panel="Pendientes"],
+.reception-module[data-tab="Pendientes"] .reception-panel[data-panel="Información"] {
+  display: none;
+}
+
+.panel-head {
+  display: grid;
+  gap: 10px;
+}
+
+.responsible-filter {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-items: center;
+}
+
+.responsible-filter-label {
+  color: var(--soft);
+  font-size: 10.5px;
+  white-space: nowrap;
+}
+
+.responsible-filter button {
+  min-height: 28px;
+  padding: 0 12px;
+  border: 1px solid #e6dfd7;
+  border-radius: 16px;
+  background: transparent;
+  color: var(--muted);
+  font-size: 10.5px;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.responsible-filter button.active {
+  border-color: transparent;
+  background: #efebe6;
+  color: var(--ink);
+  font-weight: 600;
+}
+
+.reception-panel .task-list {
+  margin-top: 11px;
+}
+
 /* Desktop-only furniture stays out of the phone layout. */
 .app-sidebar,
 .kpi-strip,
@@ -1902,6 +2260,61 @@
 /* ------------------------------- laptop: full sidebar + dashboard columns */
 
 @media (min-width: 1024px) {
+  /* Con este ancho caben pendientes e información a la vez: las pestañas sobran. */
+  .wedding-app[data-shell="web"] .reception-tabs {
+    display: none;
+  }
+
+  .wedding-app[data-shell="web"] .reception-module {
+    display: grid;
+    margin-top: 4px;
+    grid-template-columns: minmax(0, 1fr) 380px;
+    gap: 20px;
+    align-items: start;
+  }
+
+  .wedding-app[data-shell="web"] .reception-module .reception-panel {
+    display: block;
+    margin-top: 0;
+    min-width: 0;
+  }
+
+  .wedding-app[data-shell="web"] .panel-head {
+    display: flex;
+    gap: 16px;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .wedding-app[data-shell="web"] .panel-head .group-title {
+    flex-grow: 1;
+  }
+
+  .wedding-app[data-shell="web"] .attention-card {
+    grid-template-columns: 22px minmax(0, 1fr) auto;
+    min-height: 60px;
+  }
+
+  /* A lo ancho, las cuatro celdas estiradas quedan vacías: se fijan y la
+     etiqueta pasa al lado. */
+  .wedding-app[data-shell="web"] .countdown-card {
+    flex-direction: row;
+    gap: 24px;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .wedding-app[data-shell="web"] .countdown-head {
+    flex-direction: column;
+    gap: 7px;
+    align-items: flex-start;
+  }
+
+  .wedding-app[data-shell="web"] .countdown-units {
+    flex: 0 0 auto;
+    grid-template-columns: repeat(4, 82px);
+  }
+
   .wedding-app[data-shell="web"] .app-sidebar {
     flex: 0 0 260px;
     width: 260px;
@@ -2248,7 +2661,7 @@
   }
 
   .wedding-app[data-shell="web"] .reception-module {
-    gap: 14px;
+    gap: 20px;
   }
 
   .wedding-app[data-shell="web"] .reception-time-card {
@@ -2257,13 +2670,13 @@
   }
 
   .wedding-app[data-shell="web"] .reception-detail-grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 14px;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 10px;
   }
 
   .wedding-app[data-shell="web"] .reception-detail-card {
-    min-height: 110px;
-    padding: 16px 16px 16px 18px;
+    min-height: 94px;
+    padding: 14px 14px 14px 16px;
   }
 
   .wedding-app[data-shell="web"] .reception-card-copy span {

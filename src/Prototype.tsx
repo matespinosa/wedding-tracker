@@ -4,8 +4,10 @@ import {
   CalendarIcon,
   CheckIcon,
   ChevronLeftIcon,
+  ChatBubbleIcon,
   ChevronRightIcon,
   ClockIcon,
+  ExclamationTriangleIcon,
   GearIcon,
   HomeIcon,
   ListBulletIcon,
@@ -60,6 +62,7 @@ type GuestGroup = {
 
 type CorteRol = "Dama de la corte" | "Caballero de la corte" | "Testigo" | "Pajecito";
 type ChurchTab = "Ceremonia" | "Corte ceremonial";
+type ReceptionTab = "Información" | "Pendientes";
 
 type CortePerson = {
   id: string;
@@ -398,6 +401,48 @@ function daysUntil(date: string) {
   const today = new Date();
   today.setHours(12, 0, 0, 0);
   return Math.max(0, Math.ceil((target.getTime() - today.getTime()) / 86_400_000));
+}
+
+/**
+ * Cuenta regresiva viva. La ceremonia arranca a las 11:00, así que el objetivo
+ * es esa hora del día de la boda y no la medianoche: de otro modo el contador
+ * llegaría a cero la noche anterior.
+ */
+function weddingCountdown(date: string, now: number) {
+  if (!date) return null;
+  const target = new Date(`${date}T11:00:00`);
+  if (Number.isNaN(target.getTime())) return null;
+  const diff = target.getTime() - now;
+  if (diff <= 0) return { past: true, days: 0, hours: 0, minutes: 0, seconds: 0 };
+  return {
+    past: false,
+    days: Math.floor(diff / 86_400_000),
+    hours: Math.floor((diff % 86_400_000) / 3_600_000),
+    minutes: Math.floor((diff % 3_600_000) / 60_000),
+    seconds: Math.floor((diff % 60_000) / 1_000),
+  };
+}
+
+function isOverdue(date?: string) {
+  if (!date) return false;
+  const parsed = new Date(`${date}T23:59:59`);
+  if (Number.isNaN(parsed.getTime())) return false;
+  return parsed.getTime() < Date.now();
+}
+
+/**
+ * Lo que sube al bloque "Requiere tu atención": primero lo que tiene fecha
+ * límite, por cercanía; después lo de prioridad alta sin fecha.
+ */
+function attentionTasks(tasks: Task[]) {
+  const pending = tasks.filter((task) => task.estado !== "Listo");
+  const dated = pending
+    .filter((task) => task.fecha_limite)
+    .sort((a, b) => String(a.fecha_limite).localeCompare(String(b.fecha_limite)));
+  const undated = pending
+    .filter((task) => !task.fecha_limite)
+    .sort((a, b) => Number(b.prioridad === "Alta") - Number(a.prioridad === "Alta"));
+  return [...dated, ...undated].slice(0, 2);
 }
 
 function formatWeddingDate(date: string) {
@@ -907,7 +952,8 @@ function AppSidebar({ current, tasks, guests, settings, onNavigate, onOpenSettin
       </nav>
 
       <div className="sidebar-footer">
-        <div className="sidebar-countdown">
+        {/* En Resumen manda la cuenta regresiva completa; aquí sería repetirla. */}
+        <div className="sidebar-countdown" hidden={current === "Resumen"}>
           <span className="sidebar-countdown-label"><CalendarIcon /> Cuenta regresiva</span>
           <span className="sidebar-countdown-date">{formatWeddingDate(settings.weddingDate)}</span>
           {countdown === null ? (
@@ -919,6 +965,96 @@ function AppSidebar({ current, tasks, guests, settings, onNavigate, onOpenSettin
         <button className="sidebar-link" type="button" onClick={onOpenSettings}><GearIcon /><span>Configuración</span></button>
       </div>
     </aside>
+  );
+}
+
+function WeddingCountdown({ date, onConfigure }: { date: string; onConfigure: () => void }) {
+  const [now, setNow] = useState(() => Date.now());
+
+  useEffect(() => {
+    const timer = window.setInterval(() => setNow(Date.now()), 1_000);
+    return () => window.clearInterval(timer);
+  }, []);
+
+  const parts = weddingCountdown(date, now);
+
+  if (!parts) {
+    return (
+      <section className="countdown-card empty" aria-label="Cuenta regresiva">
+        <span className="countdown-label"><CalendarIcon /> Cuenta regresiva</span>
+        <p className="countdown-empty-copy">Configura la fecha de la boda para ver cuánto falta.</p>
+        <button className="countdown-cta" type="button" onClick={onConfigure}><PlusIcon /> Configurar fecha</button>
+      </section>
+    );
+  }
+
+  if (parts.past) {
+    return (
+      <section className="countdown-card past" aria-label="Cuenta regresiva">
+        <span className="countdown-label"><CalendarIcon /> Cuenta regresiva</span>
+        <strong className="countdown-past-copy">El gran día ya llegó</strong>
+        <span className="countdown-date">{formatWeddingDate(date)}</span>
+      </section>
+    );
+  }
+
+  const units = [
+    { key: "dias", label: parts.days === 1 ? "día" : "días", value: String(parts.days) },
+    { key: "horas", label: "horas", value: String(parts.hours).padStart(2, "0") },
+    { key: "min", label: "min", value: String(parts.minutes).padStart(2, "0") },
+    { key: "seg", label: "seg", value: String(parts.seconds).padStart(2, "0") },
+  ];
+
+  return (
+    <section className="countdown-card" aria-label={`Faltan ${parts.days} días para la boda`}>
+      <div className="countdown-head">
+        <span className="countdown-label"><CalendarIcon /> Cuenta regresiva</span>
+        <span className="countdown-date">{formatWeddingDate(date)} · {WEDDING_TIME}</span>
+      </div>
+      <div className="countdown-units" role="timer" aria-live="off">
+        {units.map((unit) => (
+          <div key={unit.key} className={`countdown-unit ${unit.key}`}>
+            <strong>{unit.value}</strong>
+            <small>{unit.label}</small>
+          </div>
+        ))}
+      </div>
+    </section>
+  );
+}
+
+function AttentionBlock({ tasks, onOpen, title = "Requiere tu atención" }: { tasks: Task[]; onOpen: (task: Task) => void; title?: string }) {
+  if (!tasks.length) return null;
+
+  return (
+    <div className="attention-block">
+      <div className="group-title"><span>{title}</span></div>
+      <div className="attention-list">
+        {tasks.map((task) => {
+          const parts = splitDueDate(task.fecha_limite);
+          const late = isOverdue(task.fecha_limite);
+          return (
+            <button key={task.id} className={`attention-card ${task.fecha_limite ? "dated" : ""} ${late ? "late" : ""}`} type="button" onClick={() => onOpen(task)}>
+              {task.fecha_limite ? <ExclamationTriangleIcon /> : <ClockIcon />}
+              <span className="attention-copy">
+                <strong>{task.titulo}</strong>
+                <small>{task.seccion}{task.detalle ? ` · ${task.detalle.toLowerCase()}` : ` · responsable ${task.responsable}`}</small>
+              </span>
+              <span className="attention-chip">{parts ? (late ? `venció ${parts.short}` : parts.short) : task.prioridad}</span>
+            </button>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+function CardNote({ note }: { note?: string }) {
+  return (
+    <span className={`card-note ${note ? "" : "empty"}`}>
+      {note ? <ChatBubbleIcon /> : <PlusIcon />}
+      <span>{note || "Agregar una nota"}</span>
+    </span>
   );
 }
 
@@ -945,11 +1081,11 @@ function SummaryScreen({ tasks, guests, settings, connectionState, connectionDet
   const pending = peopleCount(guests, "Pendiente");
   const pendingChurch = guests.filter((group) => group.rsvp === "Pendiente" && group.invitado_a === "Iglesia").reduce((sum, group) => sum + group.personas, 0);
   const pendingReception = pending - pendingChurch;
-  const countdown = daysUntil(settings.weddingDate);
   const pendingGroups = guests.filter((guest) => guest.rsvp === "Pendiente");
   const doneTasks = tasks.filter((task) => task.estado === "Listo").length;
   const due = nextDueTask(tasks);
   const dueParts = splitDueDate(due?.fecha_limite);
+  const attention = attentionTasks(tasks);
 
   return (
     <section className="summary-page page-shell">
@@ -958,12 +1094,16 @@ function SummaryScreen({ tasks, guests, settings, connectionState, connectionDet
           <h1>Nuestra boda</h1>
           <p className="date-line">
             <span>{formatWeddingDate(settings.weddingDate)}</span>
-            <span>{countdown === null ? "configura la fecha" : `faltan ${countdown} días`}</span>
+            <span>Iglesia {WEDDING_TIME}</span>
           </p>
           <p className={`sync-status ${connectionState}`}><span aria-hidden="true" />{connectionState === "success" ? "Google Sheets conectado" : connectionState === "syncing" ? "Actualizando desde Sheets…" : connectionState === "error" ? (connectionDetail || "Revisa la conexión con Sheets") : connectionState === "queued" ? (connectionDetail || "Hay cambios locales por enviar") : "Conecta Google Sheets desde Configuración"}</p>
         </div>
         <button className="icon-button" type="button" aria-label="Abrir configuración" onClick={onOpenSettings}><GearIcon /></button>
       </header>
+
+      <WeddingCountdown date={settings.weddingDate} onConfigure={onOpenSettings} />
+
+      <AttentionBlock tasks={attention} onOpen={(task) => onNavigate(task.seccion)} />
 
       <div className="kpi-strip">
         <KpiCard label="Por confirmar" value={pending} unit="personas" note={`en ${pendingGroups.length} grupos sin responder`} tone="accent" />
@@ -1000,14 +1140,6 @@ function SummaryScreen({ tasks, guests, settings, connectionState, connectionDet
         </div>
 
         <aside className="summary-side">
-          {due ? (
-            <button className="urgent-card" type="button" onClick={() => onNavigate(due.seccion)}>
-              <ClockIcon />
-              <span><strong>{due.titulo}</strong><small>{due.seccion}: {due.detalle.toLowerCase()}</small></span>
-              <b>{dueParts?.short}</b>
-            </button>
-          ) : null}
-
           <div className="pending-panel">
             <div className="pending-panel-head"><strong>Sin responder</strong><span>{pending} personas</span></div>
             {pendingGroups.slice(0, 5).map((guest) => (
@@ -1065,10 +1197,14 @@ function SectionScreen({
 }) {
   const [filter, setFilter] = useState<"Todas" | Responsible>("Todas");
   const [churchTab, setChurchTab] = useState<ChurchTab>("Ceremonia");
+  const [receptionTab, setReceptionTab] = useState<ReceptionTab>("Información");
   const sectionTasks = tasks.filter((task) => task.seccion === section);
   const visible = sectionTasks.filter((task) => filter === "Todas" || task.responsable === filter);
   const pending = visible.filter((task) => task.estado !== "Listo");
   const complete = visible.filter((task) => task.estado === "Listo");
+  // El contador de la pestaña cuenta la sección entera, no lo que deje el filtro.
+  const openCount = sectionTasks.filter((task) => task.estado !== "Listo").length;
+  const sectionAttention = attentionTasks(sectionTasks).slice(0, 1);
   const progress = sectionProgress(tasks, section);
   const receptionGuests = guests.filter((guest) => guest.invitado_a === "Recepción" || guest.invitado_a === "Ambas");
   const confirmed = peopleCount(receptionGuests, "Confirmado");
@@ -1116,9 +1252,10 @@ function SectionScreen({
                   return (
                     <button key={item.clave} className="ceremony-detail-card" type="button" onClick={() => onSelectLogistics("Iglesia", item.clave)}>
                       <span className={`ceremony-card-icon ${done ? "done" : ""}`}>{item.clave === "oficiante" ? <PersonIcon /> : item.clave === "decoracion" ? <BookmarkIcon /> : done ? <CheckIcon /> : <ListBulletIcon />}</span>
-                      <span className="ceremony-card-copy"><small>{item.titulo}</small><strong>{item.valor || "Por completar"}</strong><span>{item.notas || `${item.responsable} · toca para editar`}</span></span>
+                      <span className="ceremony-card-copy"><small>{item.titulo}</small><strong>{item.valor || "Por completar"}</strong><span>Responsable: {item.responsable}</span></span>
                       <span className={`status-pill ${done ? "confirmed" : ""}`}>{item.estado}</span>
                       <ChevronRightIcon className="ceremony-chevron" />
+                      <CardNote note={item.notas} />
                     </button>
                   );
                 })}
@@ -1149,10 +1286,33 @@ function SectionScreen({
             </div>
           )}
         </div>
-      ) : (
+      ) : section === "Recepción" ? (
         <>
-          {section === "Recepción" ? (
-            <div className="reception-module">
+          <AttentionBlock tasks={sectionAttention} onOpen={() => setReceptionTab("Pendientes")} />
+
+          <div className="reception-module" data-tab={receptionTab}>
+            <div className="filter-row reception-tabs" role="tablist" aria-label="Secciones de la recepción">
+              {(["Información", "Pendientes"] as ReceptionTab[]).map((tab) => (
+                <button key={tab} className={receptionTab === tab ? "active" : ""} type="button" role="tab" aria-selected={receptionTab === tab} onClick={() => setReceptionTab(tab)}>
+                  {tab}
+                  {tab === "Pendientes" && openCount ? <span className="tab-count">{openCount}</span> : null}
+                </button>
+              ))}
+            </div>
+
+            <div className="reception-panel" data-panel="Pendientes" role="tabpanel">
+              <div className="panel-head">
+                <div className="group-title"><span>Pendientes por cerrar</span></div>
+                <div className="responsible-filter" role="group" aria-label="Filtrar por responsable">
+                  <span className="responsible-filter-label">Responsable</span>
+                  {(["Todas", "Novio", "Novia", "Ambos"] as const).map((option) => <button key={option} className={filter === option ? "active" : ""} type="button" onClick={() => setFilter(option)}>{option}</button>)}
+                </div>
+              </div>
+              <div className="task-list">{pending.map((task) => <TaskRow key={task.id} task={task} onToggle={onToggle} />)}{!pending.length ? <div className="empty-state"><CheckIcon /><strong>Todo listo por aquí</strong><span>Prueba otro filtro o agrega un pendiente.</span></div> : null}</div>
+              {complete.length ? <div className="completed-group"><div className="group-title"><span>Listas: {complete.length}</span></div><div className="task-list complete-list">{complete.map((task) => <TaskRow key={task.id} task={task} onToggle={onToggle} />)}</div></div> : null}
+            </div>
+
+            <div className="reception-panel" data-panel="Información" role="tabpanel">
               {receptionTime ? (
                 <button className="reception-time-card" type="button" onClick={() => onSelectLogistics("Recepción", receptionTime.clave)}>
                   <span className="reception-time-icon"><ClockIcon /></span>
@@ -1182,9 +1342,10 @@ function SectionScreen({
                       return (
                         <button key={item.clave} className="reception-detail-card" type="button" onClick={() => onSelectLogistics("Recepción", item.clave)}>
                           <span className={`reception-card-icon ${done ? "done" : ""}`}>{receptionIcon(item.clave, done)}</span>
-                          <span className="reception-card-copy"><small>{item.titulo}</small><strong>{item.valor || "Por completar"}</strong><span>{item.notas || `${item.responsable} · toca para editar`}</span></span>
+                          <span className="reception-card-copy"><small>{item.titulo}</small><strong>{item.valor || "Por completar"}</strong><span>Responsable: {item.responsable}</span></span>
                           <span className={`status-pill ${done ? "confirmed" : ""}`}>{item.estado}</span>
                           <ChevronRightIcon className="ceremony-chevron" />
+                          <CardNote note={item.notas} />
                         </button>
                       );
                     })}
@@ -1192,9 +1353,11 @@ function SectionScreen({
                 </div>
               ) : null}
             </div>
-          ) : null}
-
-          {section !== "Recepción" && logistics.length ? (
+          </div>
+        </>
+      ) : (
+        <>
+          {logistics.length ? (
             <div className="section-block">
               <div className="group-title"><span>Logística</span></div>
               <div className="logistics-list">
@@ -1203,7 +1366,7 @@ function SectionScreen({
             </div>
           ) : null}
 
-          <div className="section-block reception-tasks-block"><div className="group-title"><span>{section === "Recepción" ? "Pendientes por cerrar" : "Pendientes"}</span></div><div className="filter-row" role="group" aria-label="Filtrar por responsable">{(["Todas", "Novio", "Novia", "Ambos"] as const).map((option) => <button key={option} className={filter === option ? "active" : ""} type="button" onClick={() => setFilter(option)}>{option}</button>)}</div>
+          <div className="section-block reception-tasks-block"><div className="group-title"><span>Pendientes</span></div><div className="filter-row" role="group" aria-label="Filtrar por responsable">{(["Todas", "Novio", "Novia", "Ambos"] as const).map((option) => <button key={option} className={filter === option ? "active" : ""} type="button" onClick={() => setFilter(option)}>{option}</button>)}</div>
           <div className="task-list">{pending.map((task) => <TaskRow key={task.id} task={task} onToggle={onToggle} />)}{!pending.length ? <div className="empty-state"><CheckIcon /><strong>Todo listo por aquí</strong><span>Prueba otro filtro o agrega un pendiente.</span></div> : null}</div>
           {complete.length ? <div className="completed-group"><div className="group-title"><span>Listas: {complete.length}</span></div><div className="task-list complete-list">{complete.map((task) => <TaskRow key={task.id} task={task} onToggle={onToggle} />)}</div></div> : null}
           </div>
@@ -1306,7 +1469,7 @@ function LogisticsDetailSheet({
         <div className="sheet-form church-sheet-form">
           <div className="sheet-overview" tabIndex={0} aria-label={`${draft.titulo}: ${draft.valor || "por completar"}`}><span>Información actual</span><strong>{draft.valor || "Por completar"}</strong><small>{draft.notas || "Toca cualquier campo para actualizar este detalle."}</small></div>
           <label className="field-block" htmlFor={`logistics-value-${section}-${draft.clave}`}><span>{draft.clave === "hora_ceremonia" || draft.clave === "hora_recepcion" ? "Horario" : draft.clave === "oficiante" ? "Nombre" : "Información principal"}</span><shell.Field id={`logistics-value-${section}-${draft.clave}`} placeholder={draft.clave === "hora_ceremonia" ? "Ej. 11:00 a.m. – 12:30 p.m." : draft.clave === "hora_recepcion" ? "Ej. 5:00 p.m. – 11:00 p.m." : "Completa este dato"} value={draft.valor} onChange={(event) => setDraft((current) => current ? { ...current, valor: event.target.value } : current)} /></label>
-          <label className="field-block" htmlFor={`logistics-notes-${section}-${draft.clave}`}><span>Notas</span><shell.Field id={`logistics-notes-${section}-${draft.clave}`} placeholder="Responsables, acuerdos o siguiente paso" value={draft.notas ?? ""} onChange={(event) => setDraft((current) => current ? { ...current, notas: event.target.value } : current)} /></label>
+          <label className="field-block" htmlFor={`logistics-notes-${section}-${draft.clave}`}><span>Notas y comentarios</span><shell.Field id={`logistics-notes-${section}-${draft.clave}`} placeholder="Se ve en la card, sin abrir el detalle" value={draft.notas ?? ""} onChange={(event) => setDraft((current) => current ? { ...current, notas: event.target.value } : current)} /></label>
           <div><span className="action-label">{isChecklist ? "Estado del checklist" : "Estado"}</span><div className="segmented-actions">{(["Pendiente", "En progreso", "Listo"] as TaskStatus[]).map((status) => <button key={status} className={draft.estado === status ? "selected" : ""} type="button" onClick={() => setDraft((current) => current ? { ...current, estado: status } : current)}>{status}</button>)}</div></div>
           <div><span className="action-label">Responsable</span><div className="segmented-actions">{(["Novio", "Novia", "Ambos"] as Responsible[]).map((responsible) => <button key={responsible} className={draft.responsable === responsible ? "selected" : ""} type="button" onClick={() => setDraft((current) => current ? { ...current, responsable: responsible } : current)}>{responsible}</button>)}</div></div>
           <button className="primary-button" type="button" onClick={() => { shell.hideKeyboard(); onSave(draft); }}><CheckIcon /> Guardar cambios</button>
@@ -1318,6 +1481,8 @@ function LogisticsDetailSheet({
 
 function TaskRow({ task, onToggle }: { task: Task; onToggle: (id: string) => void }) {
   const done = task.estado === "Listo";
+  const dueParts = splitDueDate(task.fecha_limite);
+  const late = isOverdue(task.fecha_limite);
   return (
     <article className={`task-row ${done ? "done" : ""}`}>
       <button className="task-check" type="button" aria-label={done ? `Marcar ${task.titulo} como pendiente` : `Marcar ${task.titulo} como listo`} onClick={() => onToggle(task.id)}>{done ? <CheckIcon /> : null}</button>
@@ -1326,7 +1491,13 @@ function TaskRow({ task, onToggle }: { task: Task; onToggle: (id: string) => voi
         {!done ? <span>{task.detalle}</span> : null}
         {!done ? <span className="task-tags"><b>{task.responsable}</b><b className={task.prioridad === "Alta" ? "high" : ""}>{task.prioridad}</b></span> : null}
       </div>
-      {!done ? <small>{task.responsable}</small> : null}
+      {!done ? (
+        <span className="task-side">
+          {/* La fecha límite es el dato que decide el orden del día: se ve en la fila. */}
+          {dueParts ? <span className={`task-due ${late ? "late" : ""}`}>{dueParts.short}</span> : null}
+          <small>{task.responsable}</small>
+        </span>
+      ) : null}
     </article>
   );
 }
