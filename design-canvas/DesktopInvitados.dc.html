@@ -1,0 +1,227 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600&family=Instrument+Serif&display=swap">
+  <style>
+    body { margin: 0; font-family: "Instrument Sans", "Helvetica Neue", Arial, sans-serif; }
+    body *, body *::before, body *::after { box-sizing: border-box; }
+    a { color: #c0563d; text-decoration: none; }
+    a:hover { color: #8f3d28; }
+  </style>
+</helmet>
+
+<div style="width: 1440px; height: 900px; display: flex; background: #f5f1ec; color: #1c1917;">
+
+  <aside style="width: 260px; flex: 0 0 260px; display: flex; flex-direction: column; padding: 26px 18px 22px; background: #ffffff; border-right: 1px solid #f0ebe4;">
+
+    <div style="display: flex; gap: 11px; align-items: center; padding: 0 8px 24px;">
+      <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#c0563d" stroke-width="1.4" aria-hidden="true"><circle cx="9.2" cy="14.6" r="6"/><circle cx="14.8" cy="14.6" r="6"/><path d="M12 2.4l1.7 3.3L12 7.4 10.3 5.7z" fill="#c0563d" stroke="none"/></svg>
+      <span style="font-family: 'Instrument Serif', Georgia, serif; font-size: 20px; letter-spacing: -0.02em; line-height: 1;">Nuestra boda</span>
+    </div>
+
+    <div style="padding: 0 8px 9px; color: #a29a93; font-size: 10px; font-weight: 500; letter-spacing: 0.11em; text-transform: uppercase; line-height: 1;">Panel</div>
+
+    <nav style="display: flex; flex-direction: column; gap: 3px;">
+
+      <div style="display: grid; grid-template-columns: 19px minmax(0, 1fr) auto; gap: 12px; align-items: center; min-height: 44px; padding: 0 12px; border-radius: 14px; color: #78706b; font-size: 13px; font-weight: 500;">
+        <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3.5 10.4 12 3.4l8.5 7v9.2a1 1 0 0 1-1 1h-15a1 1 0 0 1-1-1z"/></svg>
+        <span>Resumen</span>
+      </div>
+
+      <div style="display: grid; grid-template-columns: 19px minmax(0, 1fr) auto; gap: 12px; align-items: center; min-height: 44px; padding: 0 12px; border-radius: 14px; color: #78706b; font-size: 13px; font-weight: 500;">
+        <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6.5 3.5h11v17l-5.5-4.2-5.5 4.2z"/></svg>
+        <span>Iglesia</span>
+        <span style="padding: 3px 8px; border-radius: 10px; background: #f0ebe4; color: #78706b; font-size: 10.5px; font-weight: 600; line-height: 1.2;">5</span>
+      </div>
+
+      <div style="display: grid; grid-template-columns: 19px minmax(0, 1fr) auto; gap: 12px; align-items: center; min-height: 44px; padding: 0 12px; border-radius: 14px; color: #78706b; font-size: 13px; font-weight: 500;">
+        <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3.5 7.5h9M17.5 7.5h3M3.5 16.5h3M11.5 16.5h9"/><circle cx="15" cy="7.5" r="2.4"/><circle cx="9" cy="16.5" r="2.4"/></svg>
+        <span>Recepción</span>
+        <span style="padding: 3px 8px; border-radius: 10px; background: #f0ebe4; color: #78706b; font-size: 10.5px; font-weight: 600; line-height: 1.2;">4</span>
+      </div>
+
+      <div style="display: grid; grid-template-columns: 19px minmax(0, 1fr) auto; gap: 12px; align-items: center; min-height: 44px; padding: 0 12px; border-radius: 14px; color: #78706b; font-size: 13px; font-weight: 500;">
+        <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4.5 6.5h15M4.5 12h15M4.5 17.5h9"/></svg>
+        <span>General</span>
+        <span style="padding: 3px 8px; border-radius: 10px; background: #f0ebe4; color: #78706b; font-size: 10.5px; font-weight: 600; line-height: 1.2;">3</span>
+      </div>
+
+      <div style="display: grid; grid-template-columns: 19px minmax(0, 1fr) auto; gap: 12px; align-items: center; min-height: 44px; padding: 0 12px; border-radius: 14px; background: #f5f1ec; color: #1c1917; font-size: 13px; font-weight: 600;">
+        <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="#c0563d" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="8" r="3.9"/><path d="M4.6 20.5c0-4.1 3.3-6.6 7.4-6.6s7.4 2.5 7.4 6.6"/></svg>
+        <span>Invitados</span>
+        <span style="padding: 3px 8px; border-radius: 10px; background: #f5ddd3; color: #8f3d28; font-size: 10.5px; font-weight: 600; line-height: 1.2;">8</span>
+      </div>
+
+    </nav>
+
+    <div style="margin-top: auto; display: flex; flex-direction: column; gap: 6px;">
+
+      <div style="display: flex; flex-direction: column; gap: 11px; padding: 16px; border-radius: 18px; background: #f5f1ec;">
+        <div style="display: flex; gap: 8px; align-items: center; color: #a29a93; font-size: 10px; font-weight: 600; letter-spacing: 0.11em; text-transform: uppercase; line-height: 1;">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3.5" y="5.5" width="17" height="15" rx="2.5"/><path d="M8.5 3v4M15.5 3v4M3.5 10.5h17"/></svg>
+          <span>Cuenta regresiva</span>
+        </div>
+        <div style="font-family: 'Instrument Serif', Georgia, serif; font-size: 16px; color: #1c1917; letter-spacing: -0.02em; line-height: 1.25;">3 de octubre de 2026</div>
+        <div style="display: flex; align-items: baseline; gap: 6px;">
+          <strong style="font-family: 'Instrument Serif', Georgia, serif; font-size: 28px; font-weight: 400; letter-spacing: -0.03em; line-height: 1; color: #c0563d;">35</strong>
+          <span style="color: #78706b; font-size: 10.5px;">días, 11:00 a.m.</span>
+        </div>
+      </div>
+
+      <div style="display: grid; grid-template-columns: 19px minmax(0, 1fr); gap: 12px; align-items: center; min-height: 44px; padding: 0 12px; border-radius: 14px; color: #78706b; font-size: 13px; font-weight: 500;">
+        <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3.2"/><path d="M19.1 14.4a1.6 1.6 0 0 0 .32 1.77l.06.06a1.95 1.95 0 1 1-2.76 2.76l-.06-.06a1.6 1.6 0 0 0-1.77-.32 1.6 1.6 0 0 0-.97 1.47v.17a1.95 1.95 0 1 1-3.9 0v-.09a1.6 1.6 0 0 0-1.05-1.47 1.6 1.6 0 0 0-1.77.32l-.06.06a1.95 1.95 0 1 1-2.76-2.76l.06-.06a1.6 1.6 0 0 0 .32-1.77 1.6 1.6 0 0 0-1.47-.97h-.17a1.95 1.95 0 1 1 0-3.9h.09a1.6 1.6 0 0 0 1.47-1.05 1.6 1.6 0 0 0-.32-1.77l-.06-.06a1.95 1.95 0 1 1 2.76-2.76l.06.06a1.6 1.6 0 0 0 1.77.32h.08a1.6 1.6 0 0 0 .97-1.47v-.17a1.95 1.95 0 1 1 3.9 0v.09a1.6 1.6 0 0 0 .97 1.47 1.6 1.6 0 0 0 1.77-.32l.06-.06a1.95 1.95 0 1 1 2.76 2.76l-.06.06a1.6 1.6 0 0 0-.32 1.77v.08a1.6 1.6 0 0 0 1.47.97h.17a1.95 1.95 0 1 1 0 3.9h-.09a1.6 1.6 0 0 0-1.47.97z"/></svg>
+        <span>Configuración</span>
+      </div>
+
+    </div>
+  </aside>
+
+  <div style="flex: 1; min-width: 0; display: flex; flex-direction: column; padding: 30px 36px; gap: 20px;">
+
+    <header style="display: flex; align-items: flex-start; justify-content: space-between; gap: 24px;">
+      <div>
+        <h1 style="margin: 0; font-family: 'Instrument Serif', Georgia, serif; font-size: 34px; font-weight: 400; letter-spacing: -0.025em; line-height: 1;">Invitados</h1>
+        <p style="margin: 10px 0 0; color: #78706b; font-size: 11.5px; line-height: 1.2;">19 grupos, 120 personas en total</p>
+      </div>
+      <div style="display: flex; gap: 10px; align-items: center;">
+        <div style="display: grid; grid-template-columns: 17px minmax(0, 1fr); gap: 9px; align-items: center; width: 244px; height: 42px; padding: 0 14px; border: 1px solid #ebe5dd; border-radius: 14px; background: #ffffff;">
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#a29a93" stroke-width="1.6" stroke-linecap="round" aria-hidden="true"><circle cx="10.8" cy="10.8" r="6.4"/><path d="m15.6 15.6 4 4"/></svg>
+          <span style="color: #a29a93; font-size: 12.5px;">Buscar nombre o grupo</span>
+        </div>
+        <div style="display: flex; gap: 8px; align-items: center; height: 42px; padding: 0 18px; border-radius: 14px; background: #1c1917; color: #faf8f5; font-size: 12.5px; font-weight: 600;">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" aria-hidden="true"><path d="M12 5.5v13M5.5 12h13"/></svg>
+          <span>Agregar invitados</span>
+        </div>
+      </div>
+    </header>
+
+    <div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); min-height: 100px; padding: 20px 6px; border-radius: 20px; align-items: center; background: #ffffff; box-shadow: 0 1px 2px rgba(28, 25, 23, 0.04), 0 8px 24px rgba(28, 25, 23, 0.05);">
+      <div style="display: flex; flex-direction: column; align-items: center;">
+        <strong style="font-family: 'Instrument Serif', Georgia, serif; font-size: 38px; font-weight: 400; letter-spacing: -0.04em; line-height: 0.9; color: #c0563d;">34</strong>
+        <span style="margin-top: 9px; color: #a29a93; font-size: 11px; line-height: 1;">sin responder</span>
+      </div>
+      <div style="display: flex; flex-direction: column; align-items: center; border-left: 1px solid #f0ebe4;">
+        <strong style="font-family: 'Instrument Serif', Georgia, serif; font-size: 38px; font-weight: 400; letter-spacing: -0.04em; line-height: 0.9; color: #6f7f63;">86</strong>
+        <span style="margin-top: 9px; color: #a29a93; font-size: 11px; line-height: 1;">confirmados</span>
+      </div>
+      <div style="display: flex; flex-direction: column; align-items: center; border-left: 1px solid #f0ebe4;">
+        <strong style="font-family: 'Instrument Serif', Georgia, serif; font-size: 38px; font-weight: 400; letter-spacing: -0.04em; line-height: 0.9; color: #c4bcb4;">120</strong>
+        <span style="margin-top: 9px; color: #a29a93; font-size: 11px; line-height: 1;">en total</span>
+      </div>
+    </div>
+
+    <div style="display: flex; gap: 7px; align-items: center;">
+      <div style="display: flex; align-items: center; min-height: 34px; padding: 0 16px; border-radius: 18px; background: #1c1917; color: #faf8f5; font-size: 11.5px; font-weight: 500;">Sin responder</div>
+      <div style="display: flex; align-items: center; min-height: 34px; padding: 0 16px; border-radius: 18px; background: #ffffff; color: #78706b; font-size: 11.5px; font-weight: 500;">Confirmados</div>
+      <div style="display: flex; align-items: center; min-height: 34px; padding: 0 16px; border-radius: 18px; background: #ffffff; color: #78706b; font-size: 11.5px; font-weight: 500;">Todos</div>
+      <span style="width: 1px; height: 20px; margin: 0 5px; background: #e6dfd7;"></span>
+      <div style="display: flex; gap: 8px; align-items: center; min-height: 34px; padding: 0 14px; border-radius: 18px; background: #ffffff; color: #78706b; font-size: 11.5px; font-weight: 500;">
+        <span>Todas las secciones</span>
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#c4bcb4" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m5 9 7 7 7-7"/></svg>
+      </div>
+      <div style="display: flex; gap: 8px; align-items: center; min-height: 34px; padding: 0 14px; border-radius: 18px; background: #ffffff; color: #78706b; font-size: 11.5px; font-weight: 500;">
+        <span>Todo transporte</span>
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#c4bcb4" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m5 9 7 7 7-7"/></svg>
+      </div>
+    </div>
+
+    <div style="flex: 1; min-height: 0; display: flex; flex-direction: column; padding: 6px 20px 14px; border-radius: 22px; background: #ffffff; box-shadow: 0 1px 2px rgba(28, 25, 23, 0.04), 0 8px 24px rgba(28, 25, 23, 0.05);">
+
+      <div style="display: grid; grid-template-columns: minmax(0, 1fr) 90px 120px 130px 130px 18px; gap: 16px; align-items: center; height: 40px; color: #a29a93; font-size: 10px; font-weight: 500; letter-spacing: 0.11em; text-transform: uppercase;">
+        <span>Grupo</span>
+        <span>Personas</span>
+        <span>Invitado a</span>
+        <span>Transporte</span>
+        <span>Confirmación</span>
+        <span></span>
+      </div>
+
+      <div style="display: grid; grid-template-columns: minmax(0, 1fr) 90px 120px 130px 130px 18px; gap: 16px; align-items: center; min-height: 58px; border-top: 1px solid #f0ebe4;">
+        <strong style="font-size: 12.5px; font-weight: 600; line-height: 1.2; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">Familia Restrepo</strong>
+        <span style="font-family: 'Instrument Serif', Georgia, serif; font-size: 19px; letter-spacing: -0.03em; line-height: 1;">4</span>
+        <span style="color: #78706b; font-size: 11.5px;">Iglesia</span>
+        <span style="color: #78706b; font-size: 11.5px;">Uber</span>
+        <span style="justify-self: start; padding: 7px 11px; border-radius: 14px; background: #efebe6; color: #78706b; font-size: 10px; font-weight: 500; line-height: 1;">Sin responder</span>
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#c4bcb4" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m9.5 5 7 7-7 7"/></svg>
+      </div>
+
+      <div style="display: grid; grid-template-columns: minmax(0, 1fr) 90px 120px 130px 130px 18px; gap: 16px; align-items: center; min-height: 58px; border-top: 1px solid #f0ebe4;">
+        <strong style="font-size: 12.5px; font-weight: 600; line-height: 1.2; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">Ana María Gómez</strong>
+        <span style="font-family: 'Instrument Serif', Georgia, serif; font-size: 19px; letter-spacing: -0.03em; line-height: 1;">2</span>
+        <span style="color: #78706b; font-size: 11.5px;">Recepción</span>
+        <span style="color: #78706b; font-size: 11.5px;">Interno</span>
+        <span style="justify-self: start; padding: 7px 11px; border-radius: 14px; background: #efebe6; color: #78706b; font-size: 10px; font-weight: 500; line-height: 1;">Sin responder</span>
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#c4bcb4" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m9.5 5 7 7-7 7"/></svg>
+      </div>
+
+      <div style="display: grid; grid-template-columns: minmax(0, 1fr) 90px 120px 130px 130px 18px; gap: 16px; align-items: center; min-height: 58px; border-top: 1px solid #f0ebe4;">
+        <strong style="font-size: 12.5px; font-weight: 600; line-height: 1.2; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">Tíos de la novia</strong>
+        <span style="font-family: 'Instrument Serif', Georgia, serif; font-size: 19px; letter-spacing: -0.03em; line-height: 1;">6</span>
+        <span style="color: #78706b; font-size: 11.5px;">Iglesia</span>
+        <span style="color: #a29a93; font-size: 11.5px;">Por definir</span>
+        <span style="justify-self: start; padding: 7px 11px; border-radius: 14px; background: #efebe6; color: #78706b; font-size: 10px; font-weight: 500; line-height: 1;">Sin responder</span>
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#c4bcb4" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m9.5 5 7 7-7 7"/></svg>
+      </div>
+
+      <div style="display: grid; grid-template-columns: minmax(0, 1fr) 90px 120px 130px 130px 18px; gap: 16px; align-items: center; min-height: 58px; border-top: 1px solid #f0ebe4;">
+        <strong style="font-size: 12.5px; font-weight: 600; line-height: 1.2; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">Compañeros de oficina</strong>
+        <span style="font-family: 'Instrument Serif', Georgia, serif; font-size: 19px; letter-spacing: -0.03em; line-height: 1;">8</span>
+        <span style="color: #78706b; font-size: 11.5px;">Recepción</span>
+        <span style="color: #78706b; font-size: 11.5px;">Uber</span>
+        <span style="justify-self: start; padding: 7px 11px; border-radius: 14px; background: #efebe6; color: #78706b; font-size: 10px; font-weight: 500; line-height: 1;">Sin responder</span>
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#c4bcb4" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m9.5 5 7 7-7 7"/></svg>
+      </div>
+
+      <div style="display: grid; grid-template-columns: minmax(0, 1fr) 90px 120px 130px 130px 18px; gap: 16px; align-items: center; min-height: 58px; border-top: 1px solid #f0ebe4;">
+        <strong style="font-size: 12.5px; font-weight: 600; line-height: 1.2; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">Familia Mejía</strong>
+        <span style="font-family: 'Instrument Serif', Georgia, serif; font-size: 19px; letter-spacing: -0.03em; line-height: 1;">5</span>
+        <span style="color: #78706b; font-size: 11.5px;">Recepción</span>
+        <span style="color: #78706b; font-size: 11.5px;">Propio</span>
+        <span style="justify-self: start; padding: 7px 11px; border-radius: 14px; background: #efebe6; color: #78706b; font-size: 10px; font-weight: 500; line-height: 1;">Sin responder</span>
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#c4bcb4" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m9.5 5 7 7-7 7"/></svg>
+      </div>
+
+      <div style="display: grid; grid-template-columns: minmax(0, 1fr) 90px 120px 130px 130px 18px; gap: 16px; align-items: center; min-height: 58px; border-top: 1px solid #f0ebe4;">
+        <strong style="font-size: 12.5px; font-weight: 600; line-height: 1.2; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">Amigos de universidad</strong>
+        <span style="font-family: 'Instrument Serif', Georgia, serif; font-size: 19px; letter-spacing: -0.03em; line-height: 1;">4</span>
+        <span style="color: #78706b; font-size: 11.5px;">Recepción</span>
+        <span style="color: #78706b; font-size: 11.5px;">Uber</span>
+        <span style="justify-self: start; padding: 7px 11px; border-radius: 14px; background: #efebe6; color: #78706b; font-size: 10px; font-weight: 500; line-height: 1;">Sin responder</span>
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#c4bcb4" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m9.5 5 7 7-7 7"/></svg>
+      </div>
+
+      <div style="display: grid; grid-template-columns: minmax(0, 1fr) 90px 120px 130px 130px 18px; gap: 16px; align-items: center; min-height: 58px; border-top: 1px solid #f0ebe4;">
+        <strong style="font-size: 12.5px; font-weight: 600; line-height: 1.2; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">Vecinos de los novios</strong>
+        <span style="font-family: 'Instrument Serif', Georgia, serif; font-size: 19px; letter-spacing: -0.03em; line-height: 1;">2</span>
+        <span style="color: #78706b; font-size: 11.5px;">Iglesia</span>
+        <span style="color: #78706b; font-size: 11.5px;">Interno</span>
+        <span style="justify-self: start; padding: 7px 11px; border-radius: 14px; background: #efebe6; color: #78706b; font-size: 10px; font-weight: 500; line-height: 1;">Sin responder</span>
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#c4bcb4" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m9.5 5 7 7-7 7"/></svg>
+      </div>
+
+      <div style="display: grid; grid-template-columns: minmax(0, 1fr) 90px 120px 130px 130px 18px; gap: 16px; align-items: center; min-height: 58px; border-top: 1px solid #f0ebe4;">
+        <strong style="font-size: 12.5px; font-weight: 600; line-height: 1.2; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">Primos de la novia</strong>
+        <span style="font-family: 'Instrument Serif', Georgia, serif; font-size: 19px; letter-spacing: -0.03em; line-height: 1;">3</span>
+        <span style="color: #78706b; font-size: 11.5px;">Recepción</span>
+        <span style="color: #a29a93; font-size: 11.5px;">Por definir</span>
+        <span style="justify-self: start; padding: 7px 11px; border-radius: 14px; background: #efebe6; color: #78706b; font-size: 10px; font-weight: 500; line-height: 1;">Sin responder</span>
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#c4bcb4" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m9.5 5 7 7-7 7"/></svg>
+      </div>
+
+      <div style="margin-top: auto; display: flex; align-items: center; justify-content: space-between; gap: 12px; padding-top: 14px; border-top: 1px solid #f0ebe4;">
+        <span style="color: #a29a93; font-size: 11px;">8 grupos sin responder, 34 personas</span>
+        <span style="color: #c0563d; font-size: 11.5px; font-weight: 500;">Ver los 19 grupos &rarr;</span>
+      </div>
+
+    </div>
+  </div>
+</div>
+</x-dc>
+</body>
+</html>

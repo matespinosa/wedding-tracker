@@ -1,0 +1,17 @@
+{
+  "artboards": [
+    { "file": "Main.dc.html", "x": 0, "y": 0, "w": 1440, "h": 900, "title": "Escritorio · Resumen" },
+    { "file": "DesktopTareas.dc.html", "x": 1560, "y": 0, "w": 1440, "h": 900, "title": "Escritorio · Iglesia" },
+    { "file": "DesktopInvitados.dc.html", "x": 3120, "y": 0, "w": 1440, "h": 900, "title": "Escritorio · Invitados" },
+    { "file": "Tablet.dc.html", "x": 0, "y": 1100, "w": 834, "h": 1112, "title": "Tablet · Resumen" },
+    { "file": "MobileResumen.dc.html", "x": 960, "y": 1100, "w": 390, "h": 844, "title": "Móvil · Resumen" },
+    { "file": "MobileTareas.dc.html", "x": 1440, "y": 1100, "w": 390, "h": 844, "title": "Móvil · Iglesia" },
+    { "file": "MobileInvitados.dc.html", "x": 1920, "y": 1100, "w": 390, "h": 844, "title": "Móvil · Invitados" },
+    { "file": "Breakpoints.dc.html", "x": 0, "y": 2340, "w": 1060, "h": 640, "title": "Reglas responsive" }
+  ],
+  "annotations": [
+    { "id": "nota-escritorio", "x": 0, "y": -150, "w": 720, "text": "Escritorio y laptop: barra lateral fija con contadores, y cuatro métricas clave visibles en todas las pantallas, no solo en Resumen." },
+    { "id": "nota-movil", "x": 960, "y": 950, "w": 720, "text": "Móvil sin marco de dispositivo: pinta a pantalla completa y las safe areas salen de env(), así funciona igual en cualquier teléfono." }
+  ],
+  "launch": { "view": "canvas" }
+}
