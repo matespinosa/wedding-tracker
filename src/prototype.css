@@ -47,8 +47,9 @@
 }
 
 .page-shell {
+  --shell-gutter: 18px;
   min-height: 100%;
-  padding: 64px 18px calc(104px + var(--device-safe-area-bottom, 34px));
+  padding: 64px var(--shell-gutter) calc(104px + var(--device-safe-area-bottom, 34px));
 }
 
 .summary-header,
@@ -427,6 +428,7 @@
   display: grid;
   min-height: 66px;
   padding: 11px 14px;
+  border-left: 3px solid transparent;
   border-radius: 20px;
   grid-template-columns: 24px minmax(0, 1fr) auto;
   gap: 10px;
@@ -450,6 +452,31 @@
 .task-check svg {
   width: 13px;
   height: 13px;
+}
+
+/* La copia de la fila es el botón que abre el detalle; el chevron lo anuncia. */
+.task-open {
+  display: flex;
+  min-width: 0;
+  padding: 0;
+  border: 0;
+  gap: 8px;
+  align-items: center;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+}
+
+.task-open .task-copy {
+  flex: 1;
+}
+
+.task-chevron {
+  width: 13px;
+  height: 13px;
+  flex: none;
+  color: var(--faint);
 }
 
 .task-copy {
@@ -513,6 +540,55 @@
 
 .task-row.done .task-copy strong {
   font-weight: 400;
+}
+
+.task-row.status-pending {
+  border-left-color: #d7cfc7;
+}
+
+.task-row.status-in-progress {
+  border-left-color: var(--accent);
+  background: #fffaf7;
+}
+
+.task-row.status-done {
+  border-left-color: #9bab91;
+}
+
+.task-row.status-blocked {
+  border-left-color: var(--urgent);
+  background: #fff8f5;
+}
+
+.task-row.status-in-progress .task-check {
+  border-color: var(--accent);
+  background: #fbefea;
+  color: var(--accent);
+}
+
+.task-row.status-in-progress .task-check::after {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: currentColor;
+  content: "";
+}
+
+.task-row.status-blocked .task-check {
+  border-color: var(--urgent);
+  background: #f5e8e3;
+}
+
+.task-status-button {
+  min-height: 28px;
+  padding: 7px 9px;
+  border: 0;
+  cursor: pointer;
+  font: inherit;
+}
+
+.task-status-button:hover {
+  filter: brightness(0.97);
 }
 
 .completed-group {
@@ -637,7 +713,7 @@
   border: 0;
   border-radius: 20px;
   grid-template-columns: 36px minmax(0, 1fr) 18px;
-  grid-template-rows: auto auto;
+  grid-template-rows: auto auto auto;
   gap: 6px 11px;
   align-items: center;
   background: var(--surface);
@@ -655,9 +731,22 @@
   color: var(--muted);
 }
 
-.ceremony-card-icon.done {
+.ceremony-card-icon.status-done,
+.reception-card-icon.status-done {
   background: #eaf0e6;
   color: var(--sage);
+}
+
+.ceremony-card-icon.status-in-progress,
+.reception-card-icon.status-in-progress {
+  background: #fbefea;
+  color: var(--accent);
+}
+
+.ceremony-card-icon.status-blocked,
+.reception-card-icon.status-blocked {
+  background: #f5e8e3;
+  color: var(--urgent);
 }
 
 .ceremony-card-icon svg {
@@ -1014,7 +1103,7 @@
   border: 0;
   border-radius: 20px;
   grid-template-columns: 36px minmax(0, 1fr) auto 16px;
-  grid-template-rows: auto auto;
+  grid-template-rows: auto auto auto;
   gap: 6px 11px;
   align-items: center;
   background: var(--surface);
@@ -1030,11 +1119,6 @@
   grid-row: 1 / 3;
   background: #efebe6;
   color: var(--muted);
-}
-
-.reception-card-icon.done {
-  background: #eaf0e6;
-  color: var(--sage);
 }
 
 .reception-card-icon svg {
@@ -1191,6 +1275,28 @@
   color: var(--accent) !important;
 }
 
+/* Recepción e Iglesia son dos listas distintas, no un filtro más. */
+.audience-tabs {
+  margin: 14px 0 0;
+}
+
+.audience-tabs button {
+  flex: 1;
+  padding: 0 12px;
+}
+
+.audience-note {
+  margin: 11px 0 0;
+  color: var(--muted);
+  font-size: 10.5px;
+  line-height: 1.35;
+}
+
+.status-pill.guest-open-pill {
+  background: #f1ede8;
+  color: var(--muted);
+}
+
 .guest-filters {
   margin-top: 13px;
 }
@@ -1248,6 +1354,9 @@
 }
 
 .status-pill {
+  display: inline-flex;
+  gap: 6px;
+  align-items: center;
   padding: 7px 10px;
   border-radius: 14px;
   background: #efebe6;
@@ -1258,6 +1367,38 @@
   white-space: nowrap;
 }
 
+.status-dot {
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  flex: 0 0 auto;
+  border-radius: 50%;
+  background: currentColor;
+}
+
+.status-pill.status-pending,
+.status-legend-item.status-pending {
+  background: #efebe6;
+  color: #726a63;
+}
+
+.status-pill.status-in-progress,
+.status-legend-item.status-in-progress {
+  background: #fbefea;
+  color: #ad543d;
+}
+
+.status-pill.status-done,
+.status-legend-item.status-done {
+  background: #eaf0e6;
+  color: #53634a;
+}
+
+.status-pill.status-blocked {
+  background: #f5e8e3;
+  color: var(--urgent);
+}
+
 .status-pill.confirmed {
   background: #eaf0e6;
   color: #53634a;
@@ -1266,6 +1407,41 @@
 .status-pill.declined {
   background: #f5e8e3;
   color: var(--urgent);
+}
+
+.status-legend {
+  display: flex;
+  min-width: max-content;
+  margin-top: 10px;
+  gap: 6px;
+  align-items: center;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.status-legend::-webkit-scrollbar {
+  display: none;
+}
+
+.status-legend-label {
+  margin-right: 2px;
+  color: var(--soft);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.status-legend-item {
+  display: inline-flex;
+  min-height: 26px;
+  padding: 0 8px;
+  gap: 5px;
+  align-items: center;
+  border-radius: 13px;
+  font-size: 9.5px;
+  font-weight: 600;
+  white-space: nowrap;
 }
 
 .search-box {
@@ -1302,40 +1478,89 @@
   font-size: 11.5px;
 }
 
+/* --- Barra inferior flotante, vidrio líquido estilo iOS --------------- */
+
+/* Cápsula suspendida sobre el contenido: el fondo se desenfoca y se
+   sobresatura, y los bordes llevan el reflejo especular que le da el volumen. */
 .bottom-nav {
   position: absolute;
   z-index: 20;
-  right: 0;
-  bottom: 0;
-  left: 0;
+  right: 12px;
+  bottom: calc(10px + var(--device-safe-area-bottom, 34px));
+  left: 12px;
   display: grid;
-  height: calc(72px + var(--device-safe-area-bottom, 34px));
-  padding: 8px 10px var(--device-safe-area-bottom, 34px);
+  padding: 7px 6px;
+  border-radius: 27px;
   grid-template-columns: repeat(4, 1fr);
-  background: var(--surface);
-  box-shadow: 0 -1px 0 rgba(28, 25, 23, 0.05), 0 -8px 24px rgba(28, 25, 23, 0.035);
-  transition: opacity 140ms ease, transform 180ms ease;
+  background: rgba(255, 253, 251, 0.62);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.95),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.5),
+    inset 0 -1px 1px rgba(28, 25, 23, 0.04),
+    0 1px 1px rgba(28, 25, 23, 0.04),
+    0 10px 26px rgba(28, 25, 23, 0.11),
+    0 22px 48px rgba(28, 25, 23, 0.07);
+  transition: opacity 160ms ease, transform 320ms cubic-bezier(0.32, 0.72, 0, 1);
+  -webkit-backdrop-filter: blur(22px) saturate(185%);
+  backdrop-filter: blur(22px) saturate(185%);
+}
+
+/* Sin backdrop-filter el vidrio se vería como un velo sucio: va opaco. */
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  .bottom-nav {
+    background: rgba(255, 253, 251, 0.96);
+  }
 }
 
 .bottom-nav.nav-hidden {
   opacity: 0;
   pointer-events: none;
-  transform: translateY(100%);
+  transform: translateY(calc(100% + 24px));
 }
 
 .bottom-nav button {
+  position: relative;
   display: flex;
   min-width: 0;
-  padding: 4px 2px;
+  padding: 7px 2px;
   border: 0;
+  border-radius: 21px;
   flex-direction: column;
   gap: 5px;
   align-items: center;
   justify-content: center;
   background: transparent;
-  color: var(--soft);
+  color: var(--muted);
   font-size: 9.5px;
   font-weight: 500;
+  transition: color 200ms ease;
+}
+
+/* La pastilla del ítem activo: otra capa de vidrio, más clara y con brillo. */
+.bottom-nav button::before {
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.96), rgba(255, 255, 255, 0.55));
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 1),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.7),
+    0 1px 2px rgba(28, 25, 23, 0.07);
+  content: "";
+  opacity: 0;
+  transform: scale(0.82);
+  transition: opacity 220ms ease, transform 320ms cubic-bezier(0.32, 0.72, 0, 1);
+}
+
+.bottom-nav button.active::before {
+  opacity: 1;
+  transform: scale(1);
+}
+
+.bottom-nav button svg,
+.bottom-nav button span {
+  position: relative;
+  z-index: 1;
 }
 
 .bottom-nav button svg {
@@ -1516,6 +1741,67 @@
   line-height: 1.45;
 }
 
+.pwa-install-card {
+  display: grid;
+  padding: 12px;
+  border: 1px solid #eadfd7;
+  border-radius: 16px;
+  grid-template-columns: 34px minmax(0, 1fr) auto;
+  gap: 10px;
+  align-items: center;
+  background: #fffaf7;
+}
+
+.pwa-install-icon {
+  display: grid;
+  width: 34px;
+  height: 34px;
+  border-radius: 11px;
+  place-items: center;
+  background: var(--accent);
+  color: #fffaf4;
+}
+
+.pwa-install-icon .brand-mark {
+  width: 22px;
+  height: 22px;
+}
+
+.pwa-install-copy {
+  display: grid;
+  min-width: 0;
+  gap: 4px;
+}
+
+.pwa-install-copy strong {
+  color: var(--ink);
+  font-size: 11.5px;
+  font-weight: 600;
+  line-height: 1.2;
+}
+
+.pwa-install-copy span,
+.pwa-install-help {
+  color: var(--muted);
+  font-size: 10px;
+  line-height: 1.35;
+}
+
+.pwa-install-button {
+  min-height: 32px;
+  padding: 0 10px;
+  border: 0;
+  border-radius: 12px;
+  background: var(--accent);
+  color: #fffaf4;
+  font-size: 10.5px;
+  font-weight: 600;
+}
+
+.pwa-install-help {
+  grid-column: 2 / -1;
+}
+
 .primary-button {
   display: flex;
   min-height: 48px;
@@ -1534,6 +1820,33 @@
 .primary-button:disabled {
   background: #d8d1c9;
   color: #8a827b;
+}
+
+/* Borrar viaja al Sheet y no se deshace: el primer toque solo lo arma. */
+.danger-button {
+  display: flex;
+  min-height: 46px;
+  padding: 0 18px;
+  border: 1px solid #e6d3cc;
+  border-radius: 16px;
+  gap: 8px;
+  align-items: center;
+  justify-content: center;
+  background: #fdf5f2;
+  color: var(--urgent);
+  font-size: 12.5px;
+  font-weight: 600;
+}
+
+.danger-button svg {
+  width: 15px;
+  height: 15px;
+}
+
+.danger-button.armed {
+  border-color: var(--urgent);
+  background: var(--urgent);
+  color: #fdf5f2;
 }
 
 .guest-actions > div {
@@ -1587,8 +1900,9 @@
 
 @media (max-width: 360px) {
   .page-shell {
-    padding-right: 14px;
-    padding-left: 14px;
+    --shell-gutter: 14px;
+    padding-right: var(--shell-gutter);
+    padding-left: var(--shell-gutter);
   }
 
   .filter-row {
@@ -1651,8 +1965,416 @@
 }
 
 .wedding-app[data-shell="web"] .bottom-nav {
-  height: calc(72px + env(safe-area-inset-bottom, 0px));
-  padding-bottom: env(safe-area-inset-bottom, 0px);
+  bottom: calc(10px + env(safe-area-inset-bottom, 0px));
+}
+
+/* El atributo hidden tiene que ganarle al display: flex del breakpoint. */
+.sidebar-countdown[hidden] {
+  display: none !important;
+}
+
+/* El encabezado de sección se queda fijo: al hacer scroll se perdían el título
+   y el botón de volver, y la pantalla quedaba sin punto de referencia. */
+.wedding-app[data-shell="web"] .tasks-page > .screen-header,
+.wedding-app[data-shell="web"] .guests-page > .screen-header {
+  position: sticky;
+  z-index: 4;
+  top: 0;
+  margin: calc(-1 * (24px + env(safe-area-inset-top, 0px))) calc(-1 * var(--shell-gutter)) 0;
+  padding: calc(24px + env(safe-area-inset-top, 0px)) var(--shell-gutter) 10px;
+  background: var(--paper);
+}
+
+/* El check mide 22px por diseño; el área que responde al dedo, 44px. */
+.task-check {
+  position: relative;
+}
+
+.task-check::after {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 44px;
+  height: 44px;
+  transform: translate(-50%, -50%);
+  content: "";
+}
+
+.reception-card-heading button {
+  min-height: 32px;
+  margin: -6px -8px -6px 0;
+  padding: 0 8px;
+}
+
+/* --- Cuenta regresiva ------------------------------------------------ */
+
+.countdown-card {
+  display: flex;
+  margin-top: 16px;
+  padding: 16px 18px;
+  border-radius: 20px;
+  flex-direction: column;
+  gap: 14px;
+  background: var(--surface);
+  box-shadow: 0 1px 2px rgba(28, 25, 23, 0.04), 0 8px 24px rgba(28, 25, 23, 0.045);
+}
+
+.countdown-head {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 12px;
+  align-items: baseline;
+  justify-content: space-between;
+}
+
+.countdown-label {
+  display: flex;
+  gap: 7px;
+  align-items: center;
+  color: var(--soft);
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 0.11em;
+  text-transform: uppercase;
+}
+
+.countdown-label svg {
+  width: 14px;
+  height: 14px;
+}
+
+.countdown-date {
+  color: var(--muted);
+  font-size: 10.5px;
+  line-height: 1.2;
+}
+
+.countdown-units {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.countdown-unit {
+  display: flex;
+  padding: 11px 4px;
+  border-radius: 16px;
+  flex-direction: column;
+  gap: 5px;
+  align-items: center;
+  background: #faf8f5;
+}
+
+.countdown-unit strong {
+  color: var(--ink);
+  font-family: "Instrument Serif", Georgia, serif;
+  font-size: 30px;
+  font-weight: 400;
+  /* Cifras de ancho fijo: sin esto los segundos hacen saltar la fila entera. */
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.02em;
+  line-height: 1;
+}
+
+.countdown-unit small {
+  color: var(--soft);
+  font-size: 9.5px;
+  line-height: 1;
+}
+
+.countdown-unit.dias strong {
+  color: var(--accent);
+}
+
+.countdown-unit.seg strong {
+  color: var(--muted);
+}
+
+.countdown-card.empty,
+.countdown-card.past {
+  gap: 10px;
+}
+
+.countdown-empty-copy {
+  margin: 0;
+  color: var(--muted);
+  font-size: 11.5px;
+  line-height: 1.45;
+}
+
+.countdown-cta {
+  display: flex;
+  min-height: 40px;
+  padding: 0 14px;
+  border: 1px solid #e2dcd5;
+  border-radius: 14px;
+  gap: 7px;
+  align-items: center;
+  justify-content: center;
+  background: #faf8f5;
+  color: var(--ink);
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.countdown-cta svg {
+  width: 14px;
+  height: 14px;
+}
+
+.countdown-past-copy {
+  font-family: "Instrument Serif", Georgia, serif;
+  font-size: 24px;
+  font-weight: 400;
+  line-height: 1.1;
+}
+
+/* --- Requiere tu atención -------------------------------------------- */
+
+.attention-block {
+  display: grid;
+  margin-top: 18px;
+  gap: 10px;
+}
+
+.attention-list {
+  display: grid;
+  gap: 8px;
+}
+
+.attention-card {
+  display: grid;
+  width: 100%;
+  min-height: 64px;
+  padding: 13px 14px;
+  border: 1px solid var(--hairline);
+  border-radius: 20px;
+  grid-template-columns: 22px minmax(0, 1fr) auto;
+  gap: 11px;
+  align-items: center;
+  background: var(--surface);
+  color: var(--ink);
+  text-align: left;
+}
+
+.attention-card > svg {
+  width: 20px;
+  height: 20px;
+  color: var(--accent);
+}
+
+.attention-card.dated {
+  border-color: #f0dbd2;
+  background: #f8ece7;
+}
+
+.attention-card.dated > svg {
+  color: var(--urgent);
+}
+
+.attention-copy {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.attention-copy strong {
+  overflow: hidden;
+  font-size: 12.5px;
+  font-weight: 600;
+  line-height: 1.25;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.attention-copy small {
+  overflow: hidden;
+  color: var(--muted);
+  font-size: 10.5px;
+  line-height: 1.3;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.attention-card.dated .attention-copy strong {
+  color: var(--urgent);
+}
+
+.attention-card.dated .attention-copy small {
+  color: #a5654f;
+}
+
+.attention-chip {
+  padding: 7px 10px;
+  border-radius: 14px;
+  background: #efebe6;
+  color: var(--muted);
+  font-size: 9.5px;
+  font-weight: 500;
+  line-height: 1;
+  white-space: nowrap;
+}
+
+.attention-card.dated .attention-chip {
+  background: var(--surface);
+  color: var(--urgent);
+}
+
+.attention-card.late .attention-chip {
+  background: var(--urgent);
+  color: #faf8f5;
+}
+
+/* --- Nota en las cards de logística ---------------------------------- */
+
+.card-note {
+  display: grid;
+  padding-top: 10px;
+  border-top: 1px solid var(--hairline);
+  grid-template-columns: 16px minmax(0, 1fr);
+  gap: 9px;
+  align-items: start;
+  color: var(--muted);
+  font-size: 11px;
+  line-height: 1.4;
+  text-align: left;
+}
+
+.card-note svg {
+  width: 14px;
+  height: 14px;
+  margin-top: 1px;
+  color: var(--soft);
+}
+
+.card-note.empty {
+  align-items: center;
+  color: var(--soft);
+}
+
+.card-note.empty svg {
+  margin-top: 0;
+  color: var(--faint);
+}
+
+.ceremony-detail-card > .card-note,
+.reception-detail-card > .card-note {
+  grid-column: 1 / -1;
+  grid-row: 3;
+}
+
+.task-due {
+  margin-left: 7px;
+  color: var(--urgent);
+  font-style: normal;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.task-due.late::before {
+  margin-right: 4px;
+  content: "•";
+}
+
+/* --- Recepción: pestañas y filtro ------------------------------------ */
+
+.reception-tabs {
+  margin: 14px 0 0;
+}
+
+.tab-count {
+  margin-left: 7px;
+  padding: 3px 6px;
+  border-radius: 9px;
+  background: #efebe6;
+  color: var(--muted);
+  font-size: 9.5px;
+  font-weight: 600;
+  line-height: 1;
+}
+
+.filter-row button.active .tab-count {
+  background: rgba(250, 248, 245, 0.18);
+  color: #faf8f5;
+}
+
+.reception-panel {
+  display: grid;
+  margin-top: 14px;
+  gap: 14px;
+  align-content: start;
+}
+
+/* El bloque de detalles abre grupo nuevo: pide algo más de aire que una card. */
+.reception-panel > .reception-details {
+  margin-top: 4px;
+}
+
+.reception-module[data-tab="Información"] .reception-panel[data-panel="Pendientes"],
+.reception-module[data-tab="Pendientes"] .reception-panel[data-panel="Información"] {
+  display: none;
+}
+
+.panel-head {
+  display: grid;
+  gap: 10px;
+}
+
+.panel-head > * {
+  min-width: 0;
+}
+
+.responsible-filter {
+  display: flex;
+  min-width: 0;
+  gap: 8px;
+  align-items: center;
+}
+
+.responsible-filter-label {
+  flex: 0 0 auto;
+  color: var(--soft);
+  font-size: 10.5px;
+  white-space: nowrap;
+}
+
+/* En pantallas angostas los chips se deslizan en lugar de romper la fila. */
+.responsible-filter-chips {
+  display: flex;
+  min-width: 0;
+  padding-bottom: 2px;
+  gap: 6px;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.responsible-filter-chips::-webkit-scrollbar {
+  display: none;
+}
+
+.responsible-filter button {
+  min-height: 32px;
+  flex: 0 0 auto;
+  padding: 0 13px;
+  border: 1px solid #e6dfd7;
+  border-radius: 18px;
+  background: transparent;
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.responsible-filter button.active {
+  border-color: transparent;
+  background: #efebe6;
+  color: var(--ink);
+  font-weight: 600;
+}
+
+.reception-panel > .completed-group {
+  margin-top: 2px;
 }
 
 /* Desktop-only furniture stays out of the phone layout. */
@@ -1850,8 +2572,9 @@
   }
 
   .wedding-app[data-shell="web"] .page-shell {
-    padding-right: 28px;
-    padding-left: 28px;
+    --shell-gutter: 28px;
+    padding-right: var(--shell-gutter);
+    padding-left: var(--shell-gutter);
     padding-bottom: 40px;
   }
 
@@ -1902,6 +2625,61 @@
 /* ------------------------------- laptop: full sidebar + dashboard columns */
 
 @media (min-width: 1024px) {
+  /* Con este ancho caben pendientes e información a la vez: las pestañas sobran. */
+  .wedding-app[data-shell="web"] .reception-tabs {
+    display: none;
+  }
+
+  .wedding-app[data-shell="web"] .reception-module {
+    display: grid;
+    margin-top: 4px;
+    grid-template-columns: minmax(0, 1fr) 380px;
+    gap: 20px;
+    align-items: start;
+  }
+
+  .wedding-app[data-shell="web"] .reception-module .reception-panel {
+    display: grid;
+    margin-top: 0;
+    min-width: 0;
+  }
+
+  .wedding-app[data-shell="web"] .panel-head {
+    display: flex;
+    gap: 16px;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .wedding-app[data-shell="web"] .panel-head .group-title {
+    flex-grow: 1;
+  }
+
+  .wedding-app[data-shell="web"] .attention-card {
+    grid-template-columns: 22px minmax(0, 1fr) auto;
+    min-height: 60px;
+  }
+
+  /* A lo ancho, las cuatro celdas estiradas quedan vacías: se fijan y la
+     etiqueta pasa al lado. */
+  .wedding-app[data-shell="web"] .countdown-card {
+    flex-direction: row;
+    gap: 24px;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .wedding-app[data-shell="web"] .countdown-head {
+    flex-direction: column;
+    gap: 7px;
+    align-items: flex-start;
+  }
+
+  .wedding-app[data-shell="web"] .countdown-units {
+    flex: 0 0 auto;
+    grid-template-columns: repeat(4, 82px);
+  }
+
   .wedding-app[data-shell="web"] .app-sidebar {
     flex: 0 0 260px;
     width: 260px;
@@ -2057,7 +2835,8 @@
 
   /* Page frame */
   .wedding-app[data-shell="web"] .page-shell {
-    padding: calc(30px + env(safe-area-inset-top, 0px)) 36px 36px;
+    --shell-gutter: 36px;
+    padding: calc(30px + env(safe-area-inset-top, 0px)) var(--shell-gutter) 36px;
   }
 
   .wedding-app[data-shell="web"] .summary-header h1,
@@ -2248,7 +3027,7 @@
   }
 
   .wedding-app[data-shell="web"] .reception-module {
-    gap: 14px;
+    gap: 20px;
   }
 
   .wedding-app[data-shell="web"] .reception-time-card {
@@ -2257,13 +3036,13 @@
   }
 
   .wedding-app[data-shell="web"] .reception-detail-grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 14px;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 10px;
   }
 
   .wedding-app[data-shell="web"] .reception-detail-card {
-    min-height: 110px;
-    padding: 16px 16px 16px 18px;
+    min-height: 94px;
+    padding: 14px 14px 14px 16px;
   }
 
   .wedding-app[data-shell="web"] .reception-card-copy span {
@@ -2322,6 +3101,12 @@
     font-weight: 500;
     letter-spacing: 0.11em;
     text-transform: uppercase;
+  }
+
+  /* La lista de la iglesia no lleva plato ni confirmación: una columna menos. */
+  .wedding-app[data-shell="web"] .guests-page[data-audience="Iglesia"] .guest-table-head,
+  .wedding-app[data-shell="web"] .guests-page[data-audience="Iglesia"] .guest-card {
+    grid-template-columns: minmax(0, 1fr) 96px 120px 130px 132px;
   }
 
   .wedding-app[data-shell="web"] .guest-list {

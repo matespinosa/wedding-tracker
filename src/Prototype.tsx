@@ -4,8 +4,10 @@ import {
   CalendarIcon,
   CheckIcon,
   ChevronLeftIcon,
+  ChatBubbleIcon,
   ChevronRightIcon,
   ClockIcon,
+  ExclamationTriangleIcon,
   GearIcon,
   HomeIcon,
   ListBulletIcon,
@@ -20,6 +22,7 @@ import {
   ReaderIcon,
   SpeakerLoudIcon,
   StopwatchIcon,
+  TrashIcon,
 } from "@radix-ui/react-icons";
 import "@fontsource/instrument-serif/400.css";
 import "@fontsource/instrument-sans/400.css";
@@ -58,8 +61,11 @@ type GuestGroup = {
   actualizado?: string;
 };
 
+/** Las dos listas de invitados: la iglesia es abierta, la recepción confirma. */
+type GuestAudience = "Recepción" | "Iglesia";
 type CorteRol = "Dama de la corte" | "Caballero de la corte" | "Testigo" | "Pajecito";
 type ChurchTab = "Ceremonia" | "Corte ceremonial";
+type ReceptionTab = "Información" | "Pendientes";
 
 type CortePerson = {
   id: string;
@@ -86,9 +92,16 @@ type Settings = {
   token: string;
 };
 
+type BeforeInstallPromptEvent = Event & {
+  prompt: () => Promise<void>;
+  userChoice: Promise<{ outcome: "accepted" | "dismissed" }>;
+};
+
 type PendingMutation = {
   hoja: "Config" | "Tareas" | "Invitados" | "Corte" | "Iglesia" | "Recepcion";
   payload: Record<string, unknown>;
+  /** El Web App acepta crear, actualizar y borrar; sin esto seguimos actualizando. */
+  accion?: "actualizar" | "borrar";
 };
 
 type SheetResponse = {
@@ -287,12 +300,46 @@ function peopleCount(groups: GuestGroup[], status?: GuestStatus) {
     .reduce((total, group) => total + group.personas, 0);
 }
 
+/**
+ * La iglesia es de puertas abiertas: quien va solo a la ceremonia no confirma
+ * asistencia. Por eso todos los conteos de RSVP se calculan sobre esta lista y
+ * no sobre la lista completa, que mezclaba las dos audiencias.
+ */
+function needsRsvp(guest: GuestGroup) {
+  return guest.invitado_a !== "Iglesia";
+}
+
+function receptionList(guests: GuestGroup[]) {
+  return guests.filter(needsRsvp);
+}
+
+function churchList(guests: GuestGroup[]) {
+  return guests.filter((guest) => guest.invitado_a === "Iglesia" || guest.invitado_a === "Ambas");
+}
+
+function audienceList(guests: GuestGroup[], audience: GuestAudience) {
+  return audience === "Iglesia" ? churchList(guests) : receptionList(guests);
+}
+
+function audienceLabel(value: GuestGroup["invitado_a"]) {
+  if (value === "Ambas") return "iglesia y recepción";
+  if (value === "Iglesia") return "solo iglesia";
+  return "recepción";
+}
+
 function parsePlato(value: unknown): Meal | undefined {
   return value === "Pollo" || value === "Carne" ? value : undefined;
 }
 
 function parseStatus(value: unknown): TaskStatus {
   return value === "En progreso" || value === "Bloqueado" || value === "Listo" ? value : "Pendiente";
+}
+
+function statusTone(status: TaskStatus) {
+  if (status === "En progreso") return "status-in-progress";
+  if (status === "Listo") return "status-done";
+  if (status === "Bloqueado") return "status-blocked";
+  return "status-pending";
 }
 
 function parseResponsible(value: unknown): Responsible {
@@ -400,6 +447,48 @@ function daysUntil(date: string) {
   return Math.max(0, Math.ceil((target.getTime() - today.getTime()) / 86_400_000));
 }
 
+/**
+ * Cuenta regresiva viva. La ceremonia arranca a las 11:00, así que el objetivo
+ * es esa hora del día de la boda y no la medianoche: de otro modo el contador
+ * llegaría a cero la noche anterior.
+ */
+function weddingCountdown(date: string, now: number) {
+  if (!date) return null;
+  const target = new Date(`${date}T11:00:00`);
+  if (Number.isNaN(target.getTime())) return null;
+  const diff = target.getTime() - now;
+  if (diff <= 0) return { past: true, days: 0, hours: 0, minutes: 0, seconds: 0 };
+  return {
+    past: false,
+    days: Math.floor(diff / 86_400_000),
+    hours: Math.floor((diff % 86_400_000) / 3_600_000),
+    minutes: Math.floor((diff % 3_600_000) / 60_000),
+    seconds: Math.floor((diff % 60_000) / 1_000),
+  };
+}
+
+function isOverdue(date?: string) {
+  if (!date) return false;
+  const parsed = new Date(`${date}T23:59:59`);
+  if (Number.isNaN(parsed.getTime())) return false;
+  return parsed.getTime() < Date.now();
+}
+
+/**
+ * Lo que sube al bloque "Requiere tu atención": primero lo que tiene fecha
+ * límite, por cercanía; después lo de prioridad alta sin fecha.
+ */
+function attentionTasks(tasks: Task[]) {
+  const pending = tasks.filter((task) => task.estado !== "Listo");
+  const dated = pending
+    .filter((task) => task.fecha_limite)
+    .sort((a, b) => String(a.fecha_limite).localeCompare(String(b.fecha_limite)));
+  const undated = pending
+    .filter((task) => !task.fecha_limite)
+    .sort((a, b) => Number(b.prioridad === "Alta") - Number(a.prioridad === "Alta"));
+  return [...dated, ...undated].slice(0, 2);
+}
+
 function formatWeddingDate(date: string) {
   if (!date) return "[Fecha de la boda]";
   const parsed = new Date(`${date}T12:00:00`);
@@ -486,6 +575,10 @@ async function fetchVersion(settings: Settings) {
   }
 }
 
+function createTaskDraft(section: Section): Task {
+  return { id: `task-${Date.now()}`, seccion: section, titulo: "", detalle: "", responsable: "Ambos", estado: "Pendiente", prioridad: "Media" };
+}
+
 function createCorteId() {
   return `corte-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
 }
@@ -496,7 +589,7 @@ async function sendMutation(settings: Settings, mutation: PendingMutation) {
   const response = await fetch(apiUrl, {
     method: "POST",
     headers: { "Content-Type": "text/plain;charset=utf-8" },
-    body: JSON.stringify({ accion: "actualizar", hoja: mutation.hoja, token, payload: mutation.payload }),
+    body: JSON.stringify({ accion: mutation.accion ?? "actualizar", hoja: mutation.hoja, token, payload: mutation.payload }),
   });
   if (!response.ok) throw new Error("No se pudo sincronizar");
   const result = (await response.json()) as { ok?: boolean };
@@ -529,8 +622,10 @@ export default function Prototype() {
   const [recepcion, setRecepcion] = useState<LogisticsItem[]>(initial.recepcion);
   const [settings, setSettings] = useState<Settings>(initial.settings);
   const [settingsDraft, setSettingsDraft] = useState<Settings>(initial.settings);
-  const [sheet, setSheet] = useState<"settings" | "task" | "guest" | "guest-detail" | "church-person" | "church-person-new" | "logistics-detail" | null>(null);
+  const [sheet, setSheet] = useState<"settings" | "task" | "task-detail" | "guest" | "guest-detail" | "church-person" | "church-person-new" | "logistics-detail" | null>(null);
   const [selectedGuestId, setSelectedGuestId] = useState<string | null>(null);
+  const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
+  const [guestAudience, setGuestAudience] = useState<GuestAudience>("Recepción");
   const [selectedCorteId, setSelectedCorteId] = useState<string | null>(null);
   const [selectedLogisticsSection, setSelectedLogisticsSection] = useState<"Iglesia" | "Recepción" | null>(null);
   const [selectedLogisticsKey, setSelectedLogisticsKey] = useState<string | null>(null);
@@ -699,12 +794,27 @@ export default function Prototype() {
     }
   };
 
+  const updateTask = (updated: Task) => {
+    setTasks((items) => items.map((task) => task.id === updated.id ? updated : task));
+    void persistMutation({ hoja: "Tareas", payload: updated as unknown as Record<string, unknown> });
+  };
+
+  const updateTaskStatus = (id: string, estado: TaskStatus) => {
+    const current = tasks.find((task) => task.id === id);
+    if (!current) return;
+    updateTask({ ...current, estado });
+  };
+
+  const deleteTask = (id: string) => {
+    setTasks((items) => items.filter((task) => task.id !== id));
+    setSelectedTaskId((current) => current === id ? null : current);
+    void persistMutation({ hoja: "Tareas", accion: "borrar", payload: { id } });
+  };
+
   const toggleTask = (id: string) => {
     const current = tasks.find((task) => task.id === id);
     if (!current) return;
-    const updated: Task = { ...current, estado: current.estado === "Listo" ? "Pendiente" : "Listo" };
-    setTasks((items) => items.map((task) => task.id === id ? updated : task));
-    void persistMutation({ hoja: "Tareas", payload: updated as unknown as Record<string, unknown> });
+    updateTaskStatus(id, current.estado === "Listo" ? "Pendiente" : "Listo");
   };
 
   const updateCorte = (updated: CortePerson) => {
@@ -737,6 +847,16 @@ export default function Prototype() {
   };
 
   const selectedGuest = guests.find((guest) => guest.id === selectedGuestId) ?? null;
+  const selectedTask = tasks.find((task) => task.id === selectedTaskId) ?? null;
+  const openTask = (id: string) => {
+    shell.hideKeyboard();
+    setSelectedTaskId(id);
+    setSheet("task-detail");
+  };
+  const openGuests = (audience: GuestAudience) => {
+    setGuestAudience(audience);
+    navigate("Invitados");
+  };
   const selectedCortePerson = corte.find((person) => person.id === selectedCorteId) ?? null;
   const selectedLogistics = (selectedLogisticsSection === "Recepción" ? recepcion : iglesia).find((item) => item.clave === selectedLogisticsKey) ?? null;
   const openSettings = () => {
@@ -752,9 +872,9 @@ export default function Prototype() {
         <shell.Scroll key={screen} className="app-screen">
           <main className="wedding-screen" data-testid="wedding-screen" aria-live="polite">
             {screen === "Resumen" ? (
-              <SummaryScreen tasks={tasks} guests={guests} settings={settings} connectionState={connectionState} connectionDetail={connectionDetail} onOpenSettings={openSettings} onNavigate={navigate} />
+              <SummaryScreen tasks={tasks} guests={guests} settings={settings} connectionState={connectionState} connectionDetail={connectionDetail} onOpenSettings={openSettings} onNavigate={navigate} onOpenGuests={openGuests} onOpenTask={openTask} />
             ) : screen === "Invitados" ? (
-              <GuestsScreen guests={guests} onAdd={() => setSheet("guest")} onSelect={(id) => { setSelectedGuestId(id); setSheet("guest-detail"); }} />
+              <GuestsScreen guests={guests} audience={guestAudience} onAudienceChange={setGuestAudience} onAdd={() => setSheet("guest")} onSelect={(id) => { setSelectedGuestId(id); setSheet("guest-detail"); }} />
             ) : (
               <SectionScreen
                 section={screen}
@@ -766,9 +886,11 @@ export default function Prototype() {
                 onAdd={() => setSheet("task")}
                 onAddCorte={() => setSheet("church-person-new")}
                 onToggle={toggleTask}
+                onStatusChange={updateTaskStatus}
                 onSelectCorte={(id) => { setSelectedCorteId(id); setSheet("church-person"); }}
                 onSelectLogistics={(section, key) => { setSelectedLogisticsSection(section); setSelectedLogisticsKey(key); setSheet("logistics-detail"); }}
-                onOpenGuests={() => navigate("Invitados")}
+                onOpenTask={openTask}
+                onOpenGuests={() => openGuests("Recepción")}
               />
             )}
           </main>
@@ -786,6 +908,7 @@ export default function Prototype() {
             <label className="field-block" htmlFor="api-url"><span>URL del Web App</span><shell.Field id="api-url" inputMode="url" placeholder="https://script.google.com/macros/s/..." value={settingsDraft.apiUrl} onChange={(event) => setSettingsDraft((current) => ({ ...current, apiUrl: event.target.value }))} /></label>
             <label className="field-block" htmlFor="api-token"><span>Token privado</span><shell.Field id="api-token" type="password" placeholder="Solo hace falta para guardar cambios" value={settingsDraft.token} onChange={(event) => setSettingsDraft((current) => ({ ...current, token: event.target.value }))} /></label>
           </details>
+          <PwaInstallCard />
           <p className={`connection-message ${connectionState}`}>{connectionState === "syncing" ? "Actualizando..." : connectionState === "success" ? "Al día con Google Sheets." : connectionState === "error" ? (connectionDetail || "No pudimos conectar con Google Sheets.") : connectionState === "queued" ? (connectionDetail || "Hay cambios locales por enviar.") : "Leyendo la hoja de la boda."}</p>
           <button className="primary-button" type="button" onClick={async () => {
             shell.hideKeyboard();
@@ -816,13 +939,28 @@ export default function Prototype() {
       </shell.Sheet>
 
       <AddTaskSheet open={sheet === "task"} section={screen === "Resumen" || screen === "Invitados" ? "General" : screen} onClose={() => setSheet(null)} onAdd={(task) => { setTasks((current) => [...current, task]); setSheet(null); void persistMutation({ hoja: "Tareas", payload: task as unknown as Record<string, unknown> }); }} />
-      <AddGuestSheet open={sheet === "guest"} onClose={() => setSheet(null)} onAdd={(guest) => { setGuests((current) => [guest, ...current]); setSheet(null); void persistMutation({ hoja: "Invitados", payload: { ...guest, notas: guest.plato ?? "", acompanantes: Math.max(0, guest.personas - 1) } as unknown as Record<string, unknown> }); }} />
+      <TaskDetailSheet
+        open={sheet === "task-detail" && Boolean(selectedTask)}
+        task={selectedTask}
+        onClose={() => setSheet(null)}
+        onSave={(task) => { updateTask(task); setSheet(null); }}
+        onDelete={(id) => { deleteTask(id); setSheet(null); }}
+      />
+      <AddGuestSheet open={sheet === "guest"} defaultAudience={guestAudience} onClose={() => setSheet(null)} onAdd={(guest) => { setGuests((current) => [guest, ...current]); setSheet(null); void persistMutation({ hoja: "Invitados", payload: { ...guest, notas: guest.plato ?? "", acompanantes: Math.max(0, guest.personas - 1) } as unknown as Record<string, unknown> }); }} />
 
-      <shell.Sheet open={sheet === "guest-detail" && Boolean(selectedGuest)} onOpenChange={(open) => setSheet(open ? "guest-detail" : null)} title={selectedGuest?.nombre ?? "Invitado"} description={selectedGuest ? `${selectedGuest.personas} ${selectedGuest.personas === 1 ? "persona" : "personas"} para ${selectedGuest.invitado_a.toLowerCase()}${selectedGuest.plato ? ` · ${selectedGuest.plato}` : ""}` : undefined}>
+      <shell.Sheet open={sheet === "guest-detail" && Boolean(selectedGuest)} onOpenChange={(open) => setSheet(open ? "guest-detail" : null)} title={selectedGuest?.nombre ?? "Invitado"} description={selectedGuest ? `${selectedGuest.personas} ${selectedGuest.personas === 1 ? "persona" : "personas"} · ${audienceLabel(selectedGuest.invitado_a)}${needsRsvp(selectedGuest) && selectedGuest.plato ? ` · ${selectedGuest.plato}` : ""}` : undefined}>
         {selectedGuest ? (
           <div className="guest-actions">
-            <div><span className="action-label">Confirmación</span><div className="segmented-actions">{(["Pendiente", "Confirmado", "No asiste"] as GuestStatus[]).map((status) => <button key={status} className={selectedGuest.rsvp === status ? "selected" : ""} type="button" onClick={() => updateGuest(selectedGuest.id, { rsvp: status })}>{status}</button>)}</div></div>
-            <div><span className="action-label">Plato</span><div className="segmented-actions">{(["Pollo", "Carne"] as Meal[]).map((meal) => <button key={meal} className={selectedGuest.plato === meal ? "selected" : ""} type="button" onClick={() => updateGuest(selectedGuest.id, { plato: meal })}>{meal}</button>)}</div></div>
+            {/* Primero la audiencia: es lo que separa la lista de la iglesia de la de la recepción. */}
+            <div><span className="action-label">Invitado a</span><div className="segmented-actions">{(["Recepción", "Iglesia", "Ambas"] as GuestGroup["invitado_a"][]).map((option) => <button key={option} className={selectedGuest.invitado_a === option ? "selected" : ""} type="button" onClick={() => updateGuest(selectedGuest.id, { invitado_a: option })}>{option}</button>)}</div></div>
+            {needsRsvp(selectedGuest) ? (
+              <>
+                <div><span className="action-label">Confirmación</span><div className="segmented-actions">{(["Pendiente", "Confirmado", "No asiste"] as GuestStatus[]).map((status) => <button key={status} className={selectedGuest.rsvp === status ? "selected" : ""} type="button" onClick={() => updateGuest(selectedGuest.id, { rsvp: status })}>{status}</button>)}</div></div>
+                <div><span className="action-label">Plato</span><div className="segmented-actions">{(["Pollo", "Carne"] as Meal[]).map((meal) => <button key={meal} className={selectedGuest.plato === meal ? "selected" : ""} type="button" onClick={() => updateGuest(selectedGuest.id, { plato: meal })}>{meal}</button>)}</div></div>
+              </>
+            ) : (
+              <p className="sheet-note">La ceremonia es abierta: este invitado no confirma asistencia ni elige plato. Cámbialo a Recepción o Ambas si sí tiene que confirmar.</p>
+            )}
             <div><span className="action-label">Transporte</span><div className="transport-grid">{(["Uber", "Interno", "Propio", "Por definir"] as Transport[]).map((transport) => <button key={transport} className={selectedGuest.transporte === transport ? "selected" : ""} type="button" onClick={() => updateGuest(selectedGuest.id, { transporte: transport })}>{transport}</button>)}</div></div>
             {selectedGuest.fuente === "formulario" ? <p className="sheet-note">RSVP y plato salen del formulario de la invitación. El transporte se guarda en Tracker_InvitadosExtra; Confirmacion no se reescribe.</p> : null}
           </div>
@@ -907,7 +1045,8 @@ function AppSidebar({ current, tasks, guests, settings, onNavigate, onOpenSettin
       </nav>
 
       <div className="sidebar-footer">
-        <div className="sidebar-countdown">
+        {/* En Resumen manda la cuenta regresiva completa; aquí sería repetirla. */}
+        <div className="sidebar-countdown" hidden={current === "Resumen"}>
           <span className="sidebar-countdown-label"><CalendarIcon /> Cuenta regresiva</span>
           <span className="sidebar-countdown-date">{formatWeddingDate(settings.weddingDate)}</span>
           {countdown === null ? (
@@ -919,6 +1058,158 @@ function AppSidebar({ current, tasks, guests, settings, onNavigate, onOpenSettin
         <button className="sidebar-link" type="button" onClick={onOpenSettings}><GearIcon /><span>Configuración</span></button>
       </div>
     </aside>
+  );
+}
+
+function WeddingCountdown({ date, onConfigure }: { date: string; onConfigure: () => void }) {
+  const [now, setNow] = useState(() => Date.now());
+
+  useEffect(() => {
+    const timer = window.setInterval(() => setNow(Date.now()), 1_000);
+    return () => window.clearInterval(timer);
+  }, []);
+
+  const parts = weddingCountdown(date, now);
+
+  if (!parts) {
+    return (
+      <section className="countdown-card empty" aria-label="Cuenta regresiva">
+        <span className="countdown-label"><CalendarIcon /> Cuenta regresiva</span>
+        <p className="countdown-empty-copy">Configura la fecha de la boda para ver cuánto falta.</p>
+        <button className="countdown-cta" type="button" onClick={onConfigure}><PlusIcon /> Configurar fecha</button>
+      </section>
+    );
+  }
+
+  if (parts.past) {
+    return (
+      <section className="countdown-card past" aria-label="Cuenta regresiva">
+        <span className="countdown-label"><CalendarIcon /> Cuenta regresiva</span>
+        <strong className="countdown-past-copy">El gran día ya llegó</strong>
+        <span className="countdown-date">{formatWeddingDate(date)}</span>
+      </section>
+    );
+  }
+
+  const units = [
+    { key: "dias", label: parts.days === 1 ? "día" : "días", value: String(parts.days) },
+    { key: "horas", label: "horas", value: String(parts.hours).padStart(2, "0") },
+    { key: "min", label: "min", value: String(parts.minutes).padStart(2, "0") },
+    { key: "seg", label: "seg", value: String(parts.seconds).padStart(2, "0") },
+  ];
+
+  return (
+    <section className="countdown-card" aria-label={`Faltan ${parts.days} días para la boda`}>
+      <div className="countdown-head">
+        <span className="countdown-label"><CalendarIcon /> Cuenta regresiva</span>
+        <span className="countdown-date">{formatWeddingDate(date)} · {WEDDING_TIME}</span>
+      </div>
+      <div className="countdown-units" role="timer" aria-live="off">
+        {units.map((unit) => (
+          <div key={unit.key} className={`countdown-unit ${unit.key}`}>
+            <strong>{unit.value}</strong>
+            <small>{unit.label}</small>
+          </div>
+        ))}
+      </div>
+    </section>
+  );
+}
+
+function AttentionBlock({ tasks, onOpen, title = "Requiere tu atención" }: { tasks: Task[]; onOpen: (task: Task) => void; title?: string }) {
+  if (!tasks.length) return null;
+
+  return (
+    <div className="attention-block">
+      <div className="group-title"><span>{title}</span></div>
+      <div className="attention-list">
+        {tasks.map((task) => {
+          const parts = splitDueDate(task.fecha_limite);
+          const late = isOverdue(task.fecha_limite);
+          return (
+            <button key={task.id} className={`attention-card ${task.fecha_limite ? "dated" : ""} ${late ? "late" : ""}`} type="button" onClick={() => onOpen(task)}>
+              {task.fecha_limite ? <ExclamationTriangleIcon /> : <ClockIcon />}
+              <span className="attention-copy">
+                <strong>{task.titulo}</strong>
+                <small>{task.seccion}{task.detalle ? ` · ${task.detalle.toLowerCase()}` : ` · responsable ${task.responsable}`}</small>
+              </span>
+              <span className="attention-chip">{parts ? (late ? `venció ${parts.short}` : parts.short) : task.prioridad}</span>
+            </button>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+function CardNote({ note }: { note?: string }) {
+  return (
+    <span className={`card-note ${note ? "" : "empty"}`}>
+      {note ? <ChatBubbleIcon /> : <PlusIcon />}
+      <span>{note || "Agregar una nota"}</span>
+    </span>
+  );
+}
+
+function StatusLegend() {
+  return (
+    <div className="status-legend" aria-label="Leyenda de estados">
+      <span className="status-legend-label">Estados</span>
+      {(["Pendiente", "En progreso", "Listo"] as TaskStatus[]).map((status) => (
+        <span key={status} className={`status-legend-item ${statusTone(status)}`}>
+          <i className="status-dot" aria-hidden="true" />{status}
+        </span>
+      ))}
+    </div>
+  );
+}
+
+function PwaInstallCard() {
+  const [installPrompt, setInstallPrompt] = useState<BeforeInstallPromptEvent | null>(null);
+  const [installed, setInstalled] = useState(false);
+
+  useEffect(() => {
+    const isStandalone = window.matchMedia("(display-mode: standalone)").matches
+      || (window.navigator as Navigator & { standalone?: boolean }).standalone === true;
+    setInstalled(isStandalone);
+
+    const handleBeforeInstall = (event: Event) => {
+      event.preventDefault();
+      setInstallPrompt(event as BeforeInstallPromptEvent);
+    };
+    const handleInstalled = () => {
+      setInstalled(true);
+      setInstallPrompt(null);
+    };
+
+    window.addEventListener("beforeinstallprompt", handleBeforeInstall as EventListener);
+    window.addEventListener("appinstalled", handleInstalled);
+    return () => {
+      window.removeEventListener("beforeinstallprompt", handleBeforeInstall as EventListener);
+      window.removeEventListener("appinstalled", handleInstalled);
+    };
+  }, []);
+
+  const requestInstall = async () => {
+    if (!installPrompt) return;
+    await installPrompt.prompt();
+    await installPrompt.userChoice;
+    setInstallPrompt(null);
+  };
+
+  return (
+    <div className="pwa-install-card">
+      <div className="pwa-install-icon"><RingsMark /></div>
+      <div className="pwa-install-copy">
+        <strong>{installed ? "App instalada en este teléfono" : "Llévala a la pantalla de inicio"}</strong>
+        <span>{installed ? "Se abre como una app y conserva tus cambios locales." : "Así tú y tu esposa pueden abrirla rápidamente, incluso cuando no haya señal."}</span>
+      </div>
+      {installPrompt ? (
+        <button className="pwa-install-button" type="button" onClick={() => void requestInstall()}>Instalar</button>
+      ) : !installed ? (
+        <span className="pwa-install-help">iPhone: Compartir → Añadir a pantalla de inicio</span>
+      ) : null}
+    </div>
   );
 }
 
@@ -939,17 +1230,19 @@ function KpiCard({ label, value, unit, note, tone, bar }: { label: string; value
   );
 }
 
-function SummaryScreen({ tasks, guests, settings, connectionState, connectionDetail, onNavigate, onOpenSettings }: { tasks: Task[]; guests: GuestGroup[]; settings: Settings; connectionState: "idle" | "syncing" | "success" | "error" | "queued"; connectionDetail: string; onNavigate: (screen: Screen) => void; onOpenSettings: () => void }) {
-  const total = peopleCount(guests);
-  const confirmed = peopleCount(guests, "Confirmado");
-  const pending = peopleCount(guests, "Pendiente");
-  const pendingChurch = guests.filter((group) => group.rsvp === "Pendiente" && group.invitado_a === "Iglesia").reduce((sum, group) => sum + group.personas, 0);
-  const pendingReception = pending - pendingChurch;
-  const countdown = daysUntil(settings.weddingDate);
-  const pendingGroups = guests.filter((guest) => guest.rsvp === "Pendiente");
+function SummaryScreen({ tasks, guests, settings, connectionState, connectionDetail, onNavigate, onOpenSettings, onOpenGuests, onOpenTask }: { tasks: Task[]; guests: GuestGroup[]; settings: Settings; connectionState: "idle" | "syncing" | "success" | "error" | "queued"; connectionDetail: string; onNavigate: (screen: Screen) => void; onOpenSettings: () => void; onOpenGuests: (audience: GuestAudience) => void; onOpenTask: (id: string) => void }) {
+  // Solo la recepción confirma: la iglesia entra en los conteos como informativo.
+  const reception = receptionList(guests);
+  const church = churchList(guests);
+  const total = peopleCount(reception);
+  const confirmed = peopleCount(reception, "Confirmado");
+  const pending = peopleCount(reception, "Pendiente");
+  const churchTotal = peopleCount(church);
+  const pendingGroups = reception.filter((guest) => guest.rsvp === "Pendiente");
   const doneTasks = tasks.filter((task) => task.estado === "Listo").length;
   const due = nextDueTask(tasks);
   const dueParts = splitDueDate(due?.fecha_limite);
+  const attention = attentionTasks(tasks);
 
   return (
     <section className="summary-page page-shell">
@@ -958,25 +1251,29 @@ function SummaryScreen({ tasks, guests, settings, connectionState, connectionDet
           <h1>Nuestra boda</h1>
           <p className="date-line">
             <span>{formatWeddingDate(settings.weddingDate)}</span>
-            <span>{countdown === null ? "configura la fecha" : `faltan ${countdown} días`}</span>
+            <span>Iglesia {WEDDING_TIME}</span>
           </p>
           <p className={`sync-status ${connectionState}`}><span aria-hidden="true" />{connectionState === "success" ? "Google Sheets conectado" : connectionState === "syncing" ? "Actualizando desde Sheets…" : connectionState === "error" ? (connectionDetail || "Revisa la conexión con Sheets") : connectionState === "queued" ? (connectionDetail || "Hay cambios locales por enviar") : "Conecta Google Sheets desde Configuración"}</p>
         </div>
         <button className="icon-button" type="button" aria-label="Abrir configuración" onClick={onOpenSettings}><GearIcon /></button>
       </header>
 
+      <WeddingCountdown date={settings.weddingDate} onConfigure={onOpenSettings} />
+
+      <AttentionBlock tasks={attention} onOpen={(task) => onOpenTask(task.id)} />
+
       <div className="kpi-strip">
         <KpiCard label="Por confirmar" value={pending} unit="personas" note={`en ${pendingGroups.length} grupos sin responder`} tone="accent" />
-        <KpiCard label="Confirmados" value={confirmed} unit={`de ${total}`} note={`${mealCount(guests, "Pollo")} pollo · ${mealCount(guests, "Carne")} carne`} tone="sage" />
+        <KpiCard label="Confirmados" value={confirmed} unit={`de ${total}`} note={`${mealCount(reception, "Pollo")} pollo · ${mealCount(reception, "Carne")} carne`} tone="sage" />
         <KpiCard label="Pendientes listos" value={doneTasks} unit={`de ${tasks.length}`} bar={tasks.length ? Math.round((doneTasks / tasks.length) * 100) : 0} />
         <KpiCard label="Próximo vencimiento" value={dueParts ? dueParts.day : "—"} unit={dueParts ? `de ${dueParts.month}` : "sin fechas"} note={due ? due.titulo : "Nada con fecha límite"} tone="urgent" />
       </div>
 
       <div className="summary-columns">
         <div className="summary-main">
-          <button className="hero-card" type="button" onClick={() => onNavigate("Invitados")} aria-label={`${pending} personas por confirmar`}>
+          <button className="hero-card" type="button" onClick={() => onOpenGuests("Recepción")} aria-label={`${pending} personas por confirmar para la recepción`}>
             <ProgressRing percent={total ? (confirmed / total) * 100 : 0}><span className="hero-number">{pending}</span><span className="hero-label">por confirmar</span></ProgressRing>
-            <div className="hero-stats"><div><strong>{pendingChurch}</strong><span>Iglesia</span></div><div><strong>{pendingReception}</strong><span>Recepción</span></div><div><strong className="sage-number">{confirmed}</strong><span>Confirmados</span></div></div>
+            <div className="hero-stats"><div><strong className="sage-number">{confirmed}</strong><span>Confirmados</span></div><div><strong>{total}</strong><span>Recepción</span></div><div><strong>{churchTotal}</strong><span>Iglesia</span></div></div>
           </button>
 
           <div className="section-list">
@@ -1000,23 +1297,15 @@ function SummaryScreen({ tasks, guests, settings, connectionState, connectionDet
         </div>
 
         <aside className="summary-side">
-          {due ? (
-            <button className="urgent-card" type="button" onClick={() => onNavigate(due.seccion)}>
-              <ClockIcon />
-              <span><strong>{due.titulo}</strong><small>{due.seccion}: {due.detalle.toLowerCase()}</small></span>
-              <b>{dueParts?.short}</b>
-            </button>
-          ) : null}
-
           <div className="pending-panel">
             <div className="pending-panel-head"><strong>Sin responder</strong><span>{pending} personas</span></div>
             {pendingGroups.slice(0, 5).map((guest) => (
-              <button key={guest.id} className="pending-row" type="button" onClick={() => onNavigate("Invitados")}>
-                <span><strong>{guest.nombre}</strong><small>{guest.invitado_a}, {guest.transporte.toLowerCase()}</small></span>
+              <button key={guest.id} className="pending-row" type="button" onClick={() => onOpenGuests("Recepción")}>
+                <span><strong>{guest.nombre}</strong><small>{audienceLabel(guest.invitado_a)}, {guest.transporte.toLowerCase()}</small></span>
                 <b>{guest.personas}</b>
               </button>
             ))}
-            <button className="pending-panel-more" type="button" onClick={() => onNavigate("Invitados")}>Ver los {pendingGroups.length} grupos &rarr;</button>
+            <button className="pending-panel-more" type="button" onClick={() => onOpenGuests("Recepción")}>Ver los {pendingGroups.length} grupos &rarr;</button>
           </div>
         </aside>
       </div>
@@ -1046,8 +1335,10 @@ function SectionScreen({
   onAdd,
   onAddCorte,
   onToggle,
+  onStatusChange,
   onSelectCorte,
   onSelectLogistics,
+  onOpenTask,
   onOpenGuests,
 }: {
   section: Section;
@@ -1059,18 +1350,24 @@ function SectionScreen({
   onAdd: () => void;
   onAddCorte: () => void;
   onToggle: (id: string) => void;
+  onStatusChange: (id: string, status: TaskStatus) => void;
   onSelectCorte: (id: string) => void;
   onSelectLogistics: (section: "Iglesia" | "Recepción", key: string) => void;
+  onOpenTask: (id: string) => void;
   onOpenGuests: () => void;
 }) {
   const [filter, setFilter] = useState<"Todas" | Responsible>("Todas");
   const [churchTab, setChurchTab] = useState<ChurchTab>("Ceremonia");
+  const [receptionTab, setReceptionTab] = useState<ReceptionTab>("Información");
   const sectionTasks = tasks.filter((task) => task.seccion === section);
   const visible = sectionTasks.filter((task) => filter === "Todas" || task.responsable === filter);
   const pending = visible.filter((task) => task.estado !== "Listo");
   const complete = visible.filter((task) => task.estado === "Listo");
+  // El contador de la pestaña cuenta la sección entera, no lo que deje el filtro.
+  const openCount = sectionTasks.filter((task) => task.estado !== "Listo").length;
+  const sectionAttention = attentionTasks(sectionTasks).slice(0, 1);
   const progress = sectionProgress(tasks, section);
-  const receptionGuests = guests.filter((guest) => guest.invitado_a === "Recepción" || guest.invitado_a === "Ambas");
+  const receptionGuests = receptionList(guests);
   const confirmed = peopleCount(receptionGuests, "Confirmado");
   const pendingGuests = peopleCount(receptionGuests, "Pendiente");
   const totalReceptionGuests = peopleCount(receptionGuests);
@@ -1090,6 +1387,7 @@ function SectionScreen({
     <section className="tasks-page page-shell">
       <header className="screen-header"><button className="icon-button back-button" type="button" aria-label="Volver al resumen" onClick={onBack}><ChevronLeftIcon /></button><h1>{section}</h1>{section === "Iglesia" ? <button className="icon-button" type="button" aria-label="Agregar persona de corte" onClick={onAddCorte}><PlusIcon /></button> : <button className="icon-button" type="button" aria-label={`Agregar pendiente de ${section}`} onClick={onAdd}><PlusIcon /></button>}</header>
       <div className="section-progress" aria-label={`${shownProgress.done} de ${shownProgress.total} elementos listos`}><span style={{ width: `${Math.max(4, shownProgress.percent)}%` }} /></div><p className="progress-caption">{shownProgress.done} de {shownProgress.total} listos</p>
+      <StatusLegend />
 
       {section === "Iglesia" ? (
         <div className="church-module">
@@ -1115,10 +1413,11 @@ function SectionScreen({
                   const done = item.estado === "Listo";
                   return (
                     <button key={item.clave} className="ceremony-detail-card" type="button" onClick={() => onSelectLogistics("Iglesia", item.clave)}>
-                      <span className={`ceremony-card-icon ${done ? "done" : ""}`}>{item.clave === "oficiante" ? <PersonIcon /> : item.clave === "decoracion" ? <BookmarkIcon /> : done ? <CheckIcon /> : <ListBulletIcon />}</span>
-                      <span className="ceremony-card-copy"><small>{item.titulo}</small><strong>{item.valor || "Por completar"}</strong><span>{item.notas || `${item.responsable} · toca para editar`}</span></span>
-                      <span className={`status-pill ${done ? "confirmed" : ""}`}>{item.estado}</span>
+                      <span className={`ceremony-card-icon ${statusTone(item.estado)}`}>{item.clave === "oficiante" ? <PersonIcon /> : item.clave === "decoracion" ? <BookmarkIcon /> : done ? <CheckIcon /> : <ListBulletIcon />}</span>
+                      <span className="ceremony-card-copy"><small>{item.titulo}</small><strong>{item.valor || "Por completar"}</strong><span>Responsable: {item.responsable}</span></span>
+                      <span className={`status-pill ${statusTone(item.estado)}`}><i className="status-dot" aria-hidden="true" />{item.estado}</span>
                       <ChevronRightIcon className="ceremony-chevron" />
+                      <CardNote note={item.notas} />
                     </button>
                   );
                 })}
@@ -1138,7 +1437,7 @@ function SectionScreen({
                         <button key={person.id} className={`corte-person ${person.confirmado === "Sí" ? "confirmed" : ""}`} type="button" onClick={() => onSelectCorte(person.id)}>
                           <span className="corte-avatar">{person.nombre.trim() ? person.nombre.trim().slice(0, 1).toLocaleUpperCase("es") : index + 1}</span>
                           <span className="corte-person-copy"><strong>{person.nombre.trim() || `${rol} ${index + 1}`}</strong><small>{person.notas || person.telefono || "Información por completar"}</small></span>
-                          <span className={`status-pill ${person.confirmado === "Sí" ? "confirmed" : ""}`}>{person.confirmado === "Sí" ? "Confirmado" : "Pendiente"}</span>
+                          <span className={`status-pill ${person.confirmado === "Sí" ? "confirmed" : "status-pending"}`}><i className="status-dot" aria-hidden="true" />{person.confirmado === "Sí" ? "Confirmado" : "Pendiente"}</span>
                           <ChevronRightIcon className="ceremony-chevron" />
                         </button>
                       ))}
@@ -1149,10 +1448,35 @@ function SectionScreen({
             </div>
           )}
         </div>
-      ) : (
+      ) : section === "Recepción" ? (
         <>
-          {section === "Recepción" ? (
-            <div className="reception-module">
+          <AttentionBlock tasks={sectionAttention} onOpen={(task) => onOpenTask(task.id)} />
+
+          <div className="reception-module" data-tab={receptionTab}>
+            <div className="filter-row reception-tabs" role="tablist" aria-label="Secciones de la recepción">
+              {(["Información", "Pendientes"] as ReceptionTab[]).map((tab) => (
+                <button key={tab} className={receptionTab === tab ? "active" : ""} type="button" role="tab" aria-selected={receptionTab === tab} onClick={() => setReceptionTab(tab)}>
+                  {tab}
+                  {tab === "Pendientes" && openCount ? <span className="tab-count">{openCount}</span> : null}
+                </button>
+              ))}
+            </div>
+
+            <div className="reception-panel" data-panel="Pendientes" role="tabpanel">
+              <div className="panel-head">
+                <div className="group-title"><span>Pendientes por cerrar</span></div>
+                <div className="responsible-filter" role="group" aria-label="Filtrar por responsable">
+                  <span className="responsible-filter-label">Responsable</span>
+                  <div className="responsible-filter-chips">
+                    {(["Todas", "Novio", "Novia", "Ambos"] as const).map((option) => <button key={option} className={filter === option ? "active" : ""} type="button" onClick={() => setFilter(option)}>{option}</button>)}
+                  </div>
+                </div>
+              </div>
+              <div className="task-list">{pending.map((task) => <TaskRow key={task.id} task={task} onToggle={onToggle} onStatusChange={onStatusChange} onOpen={onOpenTask} />)}{!pending.length ? <div className="empty-state"><CheckIcon /><strong>Todo listo por aquí</strong><span>Prueba otro filtro o agrega un pendiente.</span></div> : null}</div>
+              {complete.length ? <div className="completed-group"><div className="group-title"><span>Listas: {complete.length}</span></div><div className="task-list complete-list">{complete.map((task) => <TaskRow key={task.id} task={task} onToggle={onToggle} onStatusChange={onStatusChange} onOpen={onOpenTask} />)}</div></div> : null}
+            </div>
+
+            <div className="reception-panel" data-panel="Información" role="tabpanel">
               {receptionTime ? (
                 <button className="reception-time-card" type="button" onClick={() => onSelectLogistics("Recepción", receptionTime.clave)}>
                   <span className="reception-time-icon"><ClockIcon /></span>
@@ -1181,10 +1505,11 @@ function SectionScreen({
                       const done = item.estado === "Listo";
                       return (
                         <button key={item.clave} className="reception-detail-card" type="button" onClick={() => onSelectLogistics("Recepción", item.clave)}>
-                          <span className={`reception-card-icon ${done ? "done" : ""}`}>{receptionIcon(item.clave, done)}</span>
-                          <span className="reception-card-copy"><small>{item.titulo}</small><strong>{item.valor || "Por completar"}</strong><span>{item.notas || `${item.responsable} · toca para editar`}</span></span>
-                          <span className={`status-pill ${done ? "confirmed" : ""}`}>{item.estado}</span>
+                          <span className={`reception-card-icon ${statusTone(item.estado)}`}>{receptionIcon(item.clave, done)}</span>
+                          <span className="reception-card-copy"><small>{item.titulo}</small><strong>{item.valor || "Por completar"}</strong><span>Responsable: {item.responsable}</span></span>
+                          <span className={`status-pill ${statusTone(item.estado)}`}><i className="status-dot" aria-hidden="true" />{item.estado}</span>
                           <ChevronRightIcon className="ceremony-chevron" />
+                          <CardNote note={item.notas} />
                         </button>
                       );
                     })}
@@ -1192,20 +1517,22 @@ function SectionScreen({
                 </div>
               ) : null}
             </div>
-          ) : null}
-
-          {section !== "Recepción" && logistics.length ? (
+          </div>
+        </>
+      ) : (
+        <>
+          {logistics.length ? (
             <div className="section-block">
               <div className="group-title"><span>Logística</span></div>
               <div className="logistics-list">
-                {logistics.map((item) => <button key={item.clave} className="logistic-row" type="button" onClick={() => onSelectLogistics("Iglesia", item.clave)}><div className="task-copy"><strong>{item.titulo}</strong><span>{item.valor || item.notas || "Por completar"}</span></div><span className={`status-pill ${item.estado === "Listo" ? "confirmed" : ""}`}>{item.estado}</span><ChevronRightIcon className="ceremony-chevron" /></button>)}
+                {logistics.map((item) => <button key={item.clave} className="logistic-row" type="button" onClick={() => onSelectLogistics("Iglesia", item.clave)}><div className="task-copy"><strong>{item.titulo}</strong><span>{item.valor || item.notas || "Por completar"}</span></div><span className={`status-pill ${statusTone(item.estado)}`}><i className="status-dot" aria-hidden="true" />{item.estado}</span><ChevronRightIcon className="ceremony-chevron" /></button>)}
               </div>
             </div>
           ) : null}
 
-          <div className="section-block reception-tasks-block"><div className="group-title"><span>{section === "Recepción" ? "Pendientes por cerrar" : "Pendientes"}</span></div><div className="filter-row" role="group" aria-label="Filtrar por responsable">{(["Todas", "Novio", "Novia", "Ambos"] as const).map((option) => <button key={option} className={filter === option ? "active" : ""} type="button" onClick={() => setFilter(option)}>{option}</button>)}</div>
-          <div className="task-list">{pending.map((task) => <TaskRow key={task.id} task={task} onToggle={onToggle} />)}{!pending.length ? <div className="empty-state"><CheckIcon /><strong>Todo listo por aquí</strong><span>Prueba otro filtro o agrega un pendiente.</span></div> : null}</div>
-          {complete.length ? <div className="completed-group"><div className="group-title"><span>Listas: {complete.length}</span></div><div className="task-list complete-list">{complete.map((task) => <TaskRow key={task.id} task={task} onToggle={onToggle} />)}</div></div> : null}
+          <div className="section-block reception-tasks-block"><div className="group-title"><span>Pendientes</span></div><div className="filter-row" role="group" aria-label="Filtrar por responsable">{(["Todas", "Novio", "Novia", "Ambos"] as const).map((option) => <button key={option} className={filter === option ? "active" : ""} type="button" onClick={() => setFilter(option)}>{option}</button>)}</div>
+          <div className="task-list">{pending.map((task) => <TaskRow key={task.id} task={task} onToggle={onToggle} onStatusChange={onStatusChange} onOpen={onOpenTask} />)}{!pending.length ? <div className="empty-state"><CheckIcon /><strong>Todo listo por aquí</strong><span>Prueba otro filtro o agrega un pendiente.</span></div> : null}</div>
+          {complete.length ? <div className="completed-group"><div className="group-title"><span>Listas: {complete.length}</span></div><div className="task-list complete-list">{complete.map((task) => <TaskRow key={task.id} task={task} onToggle={onToggle} onStatusChange={onStatusChange} onOpen={onOpenTask} />)}</div></div> : null}
           </div>
         </>
       )}
@@ -1306,7 +1633,7 @@ function LogisticsDetailSheet({
         <div className="sheet-form church-sheet-form">
           <div className="sheet-overview" tabIndex={0} aria-label={`${draft.titulo}: ${draft.valor || "por completar"}`}><span>Información actual</span><strong>{draft.valor || "Por completar"}</strong><small>{draft.notas || "Toca cualquier campo para actualizar este detalle."}</small></div>
           <label className="field-block" htmlFor={`logistics-value-${section}-${draft.clave}`}><span>{draft.clave === "hora_ceremonia" || draft.clave === "hora_recepcion" ? "Horario" : draft.clave === "oficiante" ? "Nombre" : "Información principal"}</span><shell.Field id={`logistics-value-${section}-${draft.clave}`} placeholder={draft.clave === "hora_ceremonia" ? "Ej. 11:00 a.m. – 12:30 p.m." : draft.clave === "hora_recepcion" ? "Ej. 5:00 p.m. – 11:00 p.m." : "Completa este dato"} value={draft.valor} onChange={(event) => setDraft((current) => current ? { ...current, valor: event.target.value } : current)} /></label>
-          <label className="field-block" htmlFor={`logistics-notes-${section}-${draft.clave}`}><span>Notas</span><shell.Field id={`logistics-notes-${section}-${draft.clave}`} placeholder="Responsables, acuerdos o siguiente paso" value={draft.notas ?? ""} onChange={(event) => setDraft((current) => current ? { ...current, notas: event.target.value } : current)} /></label>
+          <label className="field-block" htmlFor={`logistics-notes-${section}-${draft.clave}`}><span>Notas y comentarios</span><shell.Field id={`logistics-notes-${section}-${draft.clave}`} placeholder="Se ve en la card, sin abrir el detalle" value={draft.notas ?? ""} onChange={(event) => setDraft((current) => current ? { ...current, notas: event.target.value } : current)} /></label>
           <div><span className="action-label">{isChecklist ? "Estado del checklist" : "Estado"}</span><div className="segmented-actions">{(["Pendiente", "En progreso", "Listo"] as TaskStatus[]).map((status) => <button key={status} className={draft.estado === status ? "selected" : ""} type="button" onClick={() => setDraft((current) => current ? { ...current, estado: status } : current)}>{status}</button>)}</div></div>
           <div><span className="action-label">Responsable</span><div className="segmented-actions">{(["Novio", "Novia", "Ambos"] as Responsible[]).map((responsible) => <button key={responsible} className={draft.responsable === responsible ? "selected" : ""} type="button" onClick={() => setDraft((current) => current ? { ...current, responsable: responsible } : current)}>{responsible}</button>)}</div></div>
           <button className="primary-button" type="button" onClick={() => { shell.hideKeyboard(); onSave(draft); }}><CheckIcon /> Guardar cambios</button>
@@ -1316,65 +1643,172 @@ function LogisticsDetailSheet({
   );
 }
 
-function TaskRow({ task, onToggle }: { task: Task; onToggle: (id: string) => void }) {
-  const done = task.estado === "Listo";
+function TaskDetailSheet({
+  open,
+  task,
+  onClose,
+  onSave,
+  onDelete,
+}: {
+  open: boolean;
+  task: Task | null;
+  onClose: () => void;
+  onSave: (task: Task) => void;
+  onDelete: (id: string) => void;
+}) {
+  const [draft, setDraft] = useState<Task | null>(task);
+  // Borrar es irreversible y viaja al Sheet: pedimos un segundo toque.
+  const [confirmDelete, setConfirmDelete] = useState(false);
+  const shell = useShell();
+
+  useEffect(() => {
+    setDraft(task ? { ...task } : null);
+    setConfirmDelete(false);
+  }, [task, open]);
+
+  // Cualquier otra edición desarma el borrado: si cambiaron de idea, el botón
+  // rojo no se queda esperando un toque accidental.
+  const edit = (changes: Partial<Task>) => {
+    setConfirmDelete(false);
+    setDraft((current) => current ? { ...current, ...changes } : current);
+  };
+
   return (
-    <article className={`task-row ${done ? "done" : ""}`}>
+    <shell.Sheet open={open} onOpenChange={(next) => { if (!next) onClose(); }} title={draft?.titulo.trim() || "Pendiente"} description={draft ? `Pendiente de ${draft.seccion}. Completa la información, cambia el estado o elimínalo.` : undefined}>
+      {draft ? (
+        <div className="sheet-form church-sheet-form">
+          <div className="sheet-overview" tabIndex={0} aria-label={`${draft.titulo}: ${draft.estado}`}>
+            <span>{draft.seccion} · {draft.prioridad}</span>
+            <strong>{draft.estado}</strong>
+            <small>{draft.detalle.trim() || "Todavía no hay información. Agrégala abajo."}</small>
+          </div>
+          <label className="field-block" htmlFor={`task-title-${draft.id}`}><span>Pendiente</span><shell.Field id={`task-title-${draft.id}`} placeholder="Ej. Confirmar música" value={draft.titulo} onChange={(event) => edit({ titulo: event.target.value })} /></label>
+          <label className="field-block" htmlFor={`task-detail-${draft.id}`}><span>Información y notas</span><shell.Field id={`task-detail-${draft.id}`} placeholder="Siguiente paso, contacto o recordatorio" value={draft.detalle} onChange={(event) => edit({ detalle: event.target.value })} /></label>
+          <label className="field-block" htmlFor={`task-due-${draft.id}`}><span>Fecha límite</span><shell.Field id={`task-due-${draft.id}`} inputMode="numeric" placeholder="AAAA-MM-DD (opcional)" value={draft.fecha_limite ?? ""} onChange={(event) => edit({ fecha_limite: event.target.value })} /></label>
+          <div><span className="action-label">Estado</span><div className="segmented-actions">{(["Pendiente", "En progreso", "Listo"] as TaskStatus[]).map((status) => <button key={status} className={draft.estado === status ? "selected" : ""} type="button" onClick={() => edit({ estado: status })}>{status}</button>)}</div></div>
+          <div><span className="action-label">Responsable</span><div className="segmented-actions">{(["Novio", "Novia", "Ambos"] as Responsible[]).map((responsible) => <button key={responsible} className={draft.responsable === responsible ? "selected" : ""} type="button" onClick={() => edit({ responsable: responsible })}>{responsible}</button>)}</div></div>
+          <div><span className="action-label">Prioridad</span><div className="segmented-actions">{(["Alta", "Media", "Baja"] as Task["prioridad"][]).map((priority) => <button key={priority} className={draft.prioridad === priority ? "selected" : ""} type="button" onClick={() => edit({ prioridad: priority })}>{priority}</button>)}</div></div>
+          <button className="primary-button" type="button" disabled={!draft.titulo.trim()} onClick={() => { shell.hideKeyboard(); onSave({ ...draft, titulo: draft.titulo.trim(), detalle: draft.detalle.trim(), fecha_limite: draft.fecha_limite?.trim() || undefined }); }}><CheckIcon /> Guardar cambios</button>
+          <button className={`danger-button ${confirmDelete ? "armed" : ""}`} type="button" onClick={() => { shell.hideKeyboard(); if (!confirmDelete) { setConfirmDelete(true); return; } onDelete(draft.id); }}><TrashIcon /> {confirmDelete ? "Toca otra vez para eliminarlo" : "Eliminar pendiente"}</button>
+        </div>
+      ) : null}
+    </shell.Sheet>
+  );
+}
+
+function nextTaskStatus(status: TaskStatus): TaskStatus {
+  if (status === "Pendiente") return "En progreso";
+  if (status === "En progreso") return "Listo";
+  return "Pendiente";
+}
+
+function TaskRow({ task, onToggle, onStatusChange, onOpen }: { task: Task; onToggle: (id: string) => void; onStatusChange: (id: string, status: TaskStatus) => void; onOpen: (id: string) => void }) {
+  const done = task.estado === "Listo";
+  const dueParts = splitDueDate(task.fecha_limite);
+  const late = isOverdue(task.fecha_limite);
+  return (
+    <article className={`task-row ${statusTone(task.estado)} ${done ? "done" : ""}`}>
       <button className="task-check" type="button" aria-label={done ? `Marcar ${task.titulo} como pendiente` : `Marcar ${task.titulo} como listo`} onClick={() => onToggle(task.id)}>{done ? <CheckIcon /> : null}</button>
-      <div className="task-copy">
-        <strong>{task.titulo}</strong>
-        {!done ? <span>{task.detalle}</span> : null}
-        {!done ? <span className="task-tags"><b>{task.responsable}</b><b className={task.prioridad === "Alta" ? "high" : ""}>{task.prioridad}</b></span> : null}
-      </div>
-      {!done ? <small>{task.responsable}</small> : null}
+      <button className="task-open" type="button" aria-label={`Abrir el detalle de ${task.titulo}`} onClick={() => onOpen(task.id)}>
+        <span className="task-copy">
+          <strong>{task.titulo}</strong>
+          {!done ? <span>{task.detalle}{dueParts ? <em className={`task-due ${late ? "late" : ""}`}>{late ? "venció" : "vence"} {dueParts.short}</em> : null}</span> : null}
+          {!done ? <span className="task-tags"><b>{task.responsable}</b><b className={task.prioridad === "Alta" ? "high" : ""}>{task.prioridad}</b></span> : null}
+        </span>
+        <ChevronRightIcon className="task-chevron" />
+      </button>
+      <button className={`status-pill task-status-button ${statusTone(task.estado)}`} type="button" aria-label={`Cambiar estado de ${task.titulo}. Siguiente: ${nextTaskStatus(task.estado)}`} onClick={() => onStatusChange(task.id, nextTaskStatus(task.estado))}>
+        <i className="status-dot" aria-hidden="true" />{task.estado}
+      </button>
     </article>
   );
 }
 
-function GuestsScreen({ guests, onAdd, onSelect }: { guests: GuestGroup[]; onAdd: () => void; onSelect: (id: string) => void }) {
-  const [filter, setFilter] = useState<"Pendiente" | "Confirmado" | "Todos">(guests.some((guest) => guest.rsvp === "Pendiente") ? "Pendiente" : "Confirmado");
+function GuestsScreen({ guests, audience, onAudienceChange, onAdd, onSelect }: { guests: GuestGroup[]; audience: GuestAudience; onAudienceChange: (audience: GuestAudience) => void; onAdd: () => void; onSelect: (id: string) => void }) {
+  const [filter, setFilter] = useState<"Pendiente" | "Confirmado" | "Todos">(() => receptionList(guests).some((guest) => guest.rsvp === "Pendiente") ? "Pendiente" : "Confirmado");
   const [searchOpen, setSearchOpen] = useState(false);
   const [query, setQuery] = useState("");
   const shell = useShell();
-  const total = peopleCount(guests);
-  const pending = peopleCount(guests, "Pendiente");
-  const confirmed = peopleCount(guests, "Confirmado");
-  const chicken = mealCount(guests, "Pollo");
-  const beef = mealCount(guests, "Carne");
-  const matching = guests.filter((guest) => guest.nombre.toLocaleLowerCase("es").includes(query.toLocaleLowerCase("es")));
+  const isChurch = audience === "Iglesia";
+  // Cada pestaña es una lista distinta: la iglesia no confirma, la recepción sí.
+  const scoped = audienceList(guests, audience);
+  const total = peopleCount(scoped);
+  const pending = peopleCount(scoped, "Pendiente");
+  const confirmed = peopleCount(scoped, "Confirmado");
+  const chicken = mealCount(scoped, "Pollo");
+  const beef = mealCount(scoped, "Carne");
+  const matching = scoped.filter((guest) => guest.nombre.toLocaleLowerCase("es").includes(query.toLocaleLowerCase("es")));
   const pendingGroups = matching.filter((guest) => guest.rsvp === "Pendiente");
   const recentConfirmed = matching.filter((guest) => guest.rsvp === "Confirmado" && guest.actualizado).slice(0, 2);
-  const visible = filter === "Pendiente" && !query
-    ? [...pendingGroups.slice(0, 4), ...recentConfirmed, ...pendingGroups.slice(4)]
-    : matching.filter((guest) => filter === "Todos" || guest.rsvp === filter);
+  const visible = isChurch
+    ? matching
+    : filter === "Pendiente" && !query
+      ? [...pendingGroups.slice(0, 4), ...recentConfirmed, ...pendingGroups.slice(4)]
+      : matching.filter((guest) => filter === "Todos" || guest.rsvp === filter);
+
+  const switchAudience = (next: GuestAudience) => {
+    shell.hideKeyboard();
+    setSearchOpen(false);
+    setQuery("");
+    onAudienceChange(next);
+  };
+
   return (
-    <section className="guests-page page-shell">
+    <section className="guests-page page-shell" data-audience={audience}>
       <header className="screen-header guests-header">
         {searchOpen ? <div className="search-box"><MagnifyingGlassIcon /><shell.Field autoFocus aria-label="Buscar invitados" placeholder="Buscar nombre" value={query} onChange={(event) => setQuery(event.target.value)} /><button type="button" onClick={() => { shell.hideKeyboard(); setSearchOpen(false); setQuery(""); }}>Cancelar</button></div> : <><h1>Invitados</h1><div className="header-actions"><button className="icon-button" type="button" aria-label="Buscar invitados" onClick={() => setSearchOpen(true)}><MagnifyingGlassIcon /></button><button className="icon-button" type="button" aria-label="Agregar invitados" onClick={onAdd}><PlusIcon /></button></div></>}
       </header>
-      <div className="guest-stats"><div><strong className="accent-number">{pending}</strong><span>sin responder</span></div><div><strong className="sage-number">{confirmed}</strong><span>confirmados</span></div><div><strong>{total}</strong><span>en total</span></div></div>
-      {chicken + beef > 0 ? <p className="meal-breakdown">{chicken} pollo · {beef} carne</p> : null}
-      <div className="filter-row guest-filters" role="group" aria-label="Filtrar invitados"><button className={filter === "Pendiente" ? "active" : ""} type="button" onClick={() => setFilter("Pendiente")}>Sin responder</button><button className={filter === "Confirmado" ? "active" : ""} type="button" onClick={() => setFilter("Confirmado")}>Confirmados</button><button className={filter === "Todos" ? "active" : ""} type="button" onClick={() => setFilter("Todos")}>Todos</button></div>
-      <div className="guest-table-head" aria-hidden="true"><span>Grupo</span><span>Personas</span><span>Invitado a</span><span>Plato</span><span>Transporte</span><span>Confirmación</span></div>
+
+      <div className="filter-row audience-tabs" role="tablist" aria-label="Listas de invitados">
+        {(["Recepción", "Iglesia"] as GuestAudience[]).map((option) => (
+          <button key={option} className={audience === option ? "active" : ""} type="button" role="tab" aria-selected={audience === option} onClick={() => switchAudience(option)}>
+            {option}
+            <span className="tab-count">{peopleCount(audienceList(guests, option))}</span>
+          </button>
+        ))}
+      </div>
+
+      {isChurch ? (
+        <>
+          <p className="audience-note">La ceremonia es abierta: estos invitados no confirman asistencia ni eligen plato.</p>
+          <div className="guest-stats"><div><strong>{total}</strong><span>{total === 1 ? "persona" : "personas"}</span></div><div><strong>{scoped.length}</strong><span>{scoped.length === 1 ? "grupo" : "grupos"}</span></div></div>
+        </>
+      ) : (
+        <>
+          <div className="guest-stats"><div><strong className="accent-number">{pending}</strong><span>sin responder</span></div><div><strong className="sage-number">{confirmed}</strong><span>confirmados</span></div><div><strong>{total}</strong><span>en total</span></div></div>
+          {chicken + beef > 0 ? <p className="meal-breakdown">{chicken} pollo · {beef} carne</p> : null}
+          <div className="filter-row guest-filters" role="group" aria-label="Filtrar invitados"><button className={filter === "Pendiente" ? "active" : ""} type="button" onClick={() => setFilter("Pendiente")}>Sin responder</button><button className={filter === "Confirmado" ? "active" : ""} type="button" onClick={() => setFilter("Confirmado")}>Confirmados</button><button className={filter === "Todos" ? "active" : ""} type="button" onClick={() => setFilter("Todos")}>Todos</button></div>
+        </>
+      )}
+
+      <div className="guest-table-head" aria-hidden="true"><span>Grupo</span><span>Personas</span><span>Invitado a</span>{isChurch ? null : <span>Plato</span>}<span>Transporte</span><span>{isChurch ? "Ceremonia" : "Confirmación"}</span></div>
       <div className="guest-list">
         {visible.map((guest, index) => (
           <div key={guest.id} className="guest-card-wrap">
-            {index > 0 && visible[index - 1]?.rsvp !== guest.rsvp ? <div className="group-title"><span>{guest.rsvp === "Confirmado" ? "Confirmados hace poco" : "Más pendientes"}</span></div> : null}
+            {!isChurch && index > 0 && visible[index - 1]?.rsvp !== guest.rsvp ? <div className="group-title"><span>{guest.rsvp === "Confirmado" ? "Confirmados hace poco" : "Más pendientes"}</span></div> : null}
             <button className="guest-card" type="button" onClick={() => onSelect(guest.id)}>
               <span className="guest-copy">
                 <strong>{guest.nombre}</strong>
                 <small className="guest-meta">
                   <span className="guest-people">{guest.personas} {guest.personas === 1 ? "persona" : "personas"}</span>
-                  <span className="guest-where">{guest.invitado_a}</span>
-                  <span className="guest-meal">{guest.plato ?? "Sin plato"}</span>
+                  <span className="guest-where">{audienceLabel(guest.invitado_a)}</span>
+                  {isChurch ? null : <span className="guest-meal">{guest.plato ?? "Sin plato"}</span>}
                   <span className="guest-transport">{guest.transporte}</span>
                 </small>
               </span>
-              <span className={`status-pill ${guest.rsvp === "Confirmado" ? "confirmed" : guest.rsvp === "No asiste" ? "declined" : ""}`}>{guest.rsvp === "Pendiente" ? "Sin responder" : guest.rsvp}</span>
+              {isChurch
+                ? <span className="status-pill guest-open-pill">{guest.invitado_a === "Ambas" ? "También recepción" : "Sin confirmación"}</span>
+                : <span className={`status-pill ${guest.rsvp === "Confirmado" ? "confirmed" : guest.rsvp === "No asiste" ? "declined" : ""}`}>{guest.rsvp === "Pendiente" ? "Sin responder" : guest.rsvp}</span>}
             </button>
           </div>
         ))}
-        {!visible.length ? <div className="empty-state"><PersonIcon /><strong>No encontramos invitados</strong><span>Cambia el filtro o prueba otro nombre.</span></div> : null}
+        {!visible.length ? (
+          <div className="empty-state">
+            <PersonIcon />
+            <strong>{isChurch ? "Todavía no hay lista de la iglesia" : "No encontramos invitados"}</strong>
+            <span>{isChurch ? "Abre un invitado y cambia «Invitado a» para pasarlo a la ceremonia." : "Cambia el filtro o prueba otro nombre."}</span>
+          </div>
+        ) : null}
       </div>
     </section>
   );
@@ -1391,15 +1825,46 @@ function BottomNav({ current, hidden, onNavigate }: { current: Screen; hidden: b
 }
 
 function AddTaskSheet({ open, section, onClose, onAdd }: { open: boolean; section: Section; onClose: () => void; onAdd: (task: Task) => void }) {
-  const [title, setTitle] = useState("");
-  const [detail, setDetail] = useState("");
+  const [draft, setDraft] = useState<Task>(() => createTaskDraft(section));
   const shell = useShell();
-  return <shell.Sheet open={open} onOpenChange={(next) => { if (!next) onClose(); }} title={`Nuevo pendiente de ${section}`} description="Agrégalo ahora y completen el detalle cuando lo tengan claro."><div className="sheet-form"><label className="field-block" htmlFor="task-title"><span>Pendiente</span><shell.Field id="task-title" placeholder="Ej. Confirmar música" value={title} onChange={(event) => setTitle(event.target.value)} /></label><label className="field-block" htmlFor="task-detail"><span>Detalle</span><shell.Field id="task-detail" placeholder="Nota breve o siguiente paso" value={detail} onChange={(event) => setDetail(event.target.value)} /></label><button className="primary-button" type="button" disabled={!title.trim()} onClick={() => { shell.hideKeyboard(); onAdd({ id: `task-${Date.now()}`, seccion: section, titulo: title.trim(), detalle: detail.trim() || "Sin detalle", responsable: "Ambos", estado: "Pendiente", prioridad: "Media" }); setTitle(""); setDetail(""); }}><PlusIcon /> Agregar pendiente</button></div></shell.Sheet>;
+
+  useEffect(() => {
+    if (open) setDraft(createTaskDraft(section));
+  }, [open, section]);
+
+  return (
+    <shell.Sheet open={open} onOpenChange={(next) => { if (!next) onClose(); }} title={`Nuevo pendiente de ${section}`} description="Agrégalo ahora y completen el resto cuando lo tengan claro.">
+      <div className="sheet-form church-sheet-form">
+        <label className="field-block" htmlFor="task-title"><span>Pendiente</span><shell.Field id="task-title" autoFocus placeholder="Ej. Confirmar música" value={draft.titulo} onChange={(event) => setDraft((current) => ({ ...current, titulo: event.target.value }))} /></label>
+        <label className="field-block" htmlFor="task-detail"><span>Información y notas</span><shell.Field id="task-detail" placeholder="Nota breve o siguiente paso" value={draft.detalle} onChange={(event) => setDraft((current) => ({ ...current, detalle: event.target.value }))} /></label>
+        <label className="field-block" htmlFor="task-due"><span>Fecha límite</span><shell.Field id="task-due" inputMode="numeric" placeholder="AAAA-MM-DD (opcional)" value={draft.fecha_limite ?? ""} onChange={(event) => setDraft((current) => ({ ...current, fecha_limite: event.target.value }))} /></label>
+        <div><span className="action-label">Responsable</span><div className="segmented-actions">{(["Novio", "Novia", "Ambos"] as Responsible[]).map((responsible) => <button key={responsible} className={draft.responsable === responsible ? "selected" : ""} type="button" onClick={() => setDraft((current) => ({ ...current, responsable: responsible }))}>{responsible}</button>)}</div></div>
+        <div><span className="action-label">Prioridad</span><div className="segmented-actions">{(["Alta", "Media", "Baja"] as Task["prioridad"][]).map((priority) => <button key={priority} className={draft.prioridad === priority ? "selected" : ""} type="button" onClick={() => setDraft((current) => ({ ...current, prioridad: priority }))}>{priority}</button>)}</div></div>
+        <button className="primary-button" type="button" disabled={!draft.titulo.trim()} onClick={() => { shell.hideKeyboard(); onAdd({ ...draft, titulo: draft.titulo.trim(), detalle: draft.detalle.trim() || "Sin detalle", fecha_limite: draft.fecha_limite?.trim() || undefined }); }}><PlusIcon /> Agregar pendiente</button>
+      </div>
+    </shell.Sheet>
+  );
 }
 
-function AddGuestSheet({ open, onClose, onAdd }: { open: boolean; onClose: () => void; onAdd: (guest: GuestGroup) => void }) {
+function AddGuestSheet({ open, defaultAudience, onClose, onAdd }: { open: boolean; defaultAudience: GuestAudience; onClose: () => void; onAdd: (guest: GuestGroup) => void }) {
   const [name, setName] = useState("");
   const [count, setCount] = useState("1");
+  const [target, setTarget] = useState<GuestGroup["invitado_a"]>(defaultAudience);
   const shell = useShell();
-  return <shell.Sheet open={open} onOpenChange={(next) => { if (!next) onClose(); }} title="Agregar invitados" description="Puedes registrar una persona o un grupo familiar."><div className="sheet-form"><label className="field-block" htmlFor="guest-name"><span>Nombre o grupo</span><shell.Field id="guest-name" placeholder="Ej. Familia Ramírez" value={name} onChange={(event) => setName(event.target.value)} /></label><label className="field-block" htmlFor="guest-count"><span>Número de personas</span><shell.Field id="guest-count" inputMode="numeric" placeholder="1" value={count} onChange={(event) => setCount(event.target.value.replace(/[^0-9]/g, ""))} /></label><button className="primary-button" type="button" disabled={!name.trim()} onClick={() => { shell.hideKeyboard(); onAdd({ id: `guest-${Date.now()}`, nombre: name.trim(), personas: Math.max(1, Number(count) || 1), invitado_a: "Recepción", rsvp: "Pendiente", transporte: "Por definir" }); setName(""); setCount("1"); }}><PersonIcon /> Agregar invitados</button></div></shell.Sheet>;
+
+  useEffect(() => {
+    if (open) setTarget(defaultAudience);
+  }, [open, defaultAudience]);
+
+  return (
+    <shell.Sheet open={open} onOpenChange={(next) => { if (!next) onClose(); }} title="Agregar invitados" description="Puedes registrar una persona o un grupo familiar.">
+      <div className="sheet-form church-sheet-form">
+        <label className="field-block" htmlFor="guest-name"><span>Nombre o grupo</span><shell.Field id="guest-name" autoFocus placeholder="Ej. Familia Ramírez" value={name} onChange={(event) => setName(event.target.value)} /></label>
+        <label className="field-block" htmlFor="guest-count"><span>Número de personas</span><shell.Field id="guest-count" inputMode="numeric" placeholder="1" value={count} onChange={(event) => setCount(event.target.value.replace(/[^0-9]/g, ""))} /></label>
+        <div><span className="action-label">Invitado a</span><div className="segmented-actions">{(["Recepción", "Iglesia", "Ambas"] as GuestGroup["invitado_a"][]).map((option) => <button key={option} className={target === option ? "selected" : ""} type="button" onClick={() => setTarget(option)}>{option}</button>)}</div></div>
+        <p className="sheet-note">{target === "Iglesia" ? "Solo iglesia: entra a la lista de la ceremonia y no tiene que confirmar." : "Cuenta para la recepción, así que queda como pendiente de confirmar."}</p>
+        <button className="primary-button" type="button" disabled={!name.trim()} onClick={() => { shell.hideKeyboard(); onAdd({ id: `guest-${Date.now()}`, nombre: name.trim(), personas: Math.max(1, Number(count) || 1), invitado_a: target, rsvp: "Pendiente", transporte: "Por definir" }); setName(""); setCount("1"); }}><PersonIcon /> Agregar invitados</button>
+      </div>
+    </shell.Sheet>
+  );
 }

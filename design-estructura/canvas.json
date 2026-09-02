@@ -1,0 +1,99 @@
+{
+  "artboards": [
+    {
+      "file": "Main.dc.html",
+      "x": 0,
+      "y": 0,
+      "w": 390,
+      "h": 1010,
+      "title": "Resumen · móvil"
+    },
+    {
+      "file": "Iglesia.dc.html",
+      "x": 470,
+      "y": 0,
+      "w": 390,
+      "h": 820,
+      "title": "Iglesia · cards con nota"
+    },
+    {
+      "file": "NotaSheet.dc.html",
+      "x": 940,
+      "y": 0,
+      "w": 390,
+      "h": 640,
+      "title": "Detalle · campo de notas"
+    },
+    {
+      "file": "Recepcion.dc.html",
+      "x": 0,
+      "y": 1220,
+      "w": 390,
+      "h": 810,
+      "title": "Recepción · con pestañas"
+    },
+    {
+      "file": "RecepcionScroll.dc.html",
+      "x": 470,
+      "y": 1220,
+      "w": 390,
+      "h": 890,
+      "title": "Recepción · scroll único"
+    },
+    {
+      "file": "RecepcionDesktop.dc.html",
+      "x": 0,
+      "y": 2360,
+      "w": 1440,
+      "h": 780,
+      "title": "Recepción · escritorio"
+    }
+  ],
+  "annotations": [
+    {
+      "id": "nota-resumen",
+      "x": 0,
+      "y": -190,
+      "w": 390,
+      "text": "RESUMEN\n\nDos cosas nuevas arriba del todo:\n\n1. Cuenta regresiva como sección propia. Antes solo existía en la barra lateral de escritorio; en el móvil era media línea gris junto a la fecha.\n\n2. \"Requiere tu atención\": lo vencido o urgente sube al tope, encima de los números. El contrato deja de ser un dato dentro de un KPI y pasa a ser lo primero que ves."
+    },
+    {
+      "id": "nota-iglesia",
+      "x": 470,
+      "y": -190,
+      "w": 390,
+      "text": "IGLESIA · NOTAS EN LAS CARDS\n\nCada card gana una línea de nota separada por un filete. Cuando está vacía muestra \"Agregar una nota\" en gris claro, así la card no se ve rota ni ocupa espacio de más.\n\nLa nota va debajo del estado, no al lado: en 390px cualquier cosa a la derecha del título deja el texto en dos palabras por línea."
+    },
+    {
+      "id": "nota-sheet",
+      "x": 940,
+      "y": -190,
+      "w": 390,
+      "text": "DÓNDE SE ESCRIBE\n\nEl mismo bottom sheet que ya abre cada card, con el campo de notas al final. La columna `notas` ya existe en Tracker_Iglesia y Tracker_Recepcion, así que esto no cambia el Sheet: solo lo hace visible y editable."
+    },
+    {
+      "id": "nota-recepcion",
+      "x": 0,
+      "y": 1090,
+      "w": 390,
+      "text": "RECEPCIÓN · RECOMENDADA\n\nEl problema no es dónde están los filtros: es que \"Pendientes por cerrar\" queda al final de un scroll largo, después de hora, invitados y seis cards de información. Los filtros se ven abajo porque toda la sección está abajo.\n\nDos pestañas, igual que Iglesia: Información y Pendientes. Los pendientes arrancan arriba y el filtro queda a la vista sin scroll.\n\nEl filtro es más pequeño y va etiquetado \"Responsable\" para no confundirse con las pestañas."
+    },
+    {
+      "id": "nota-alterna",
+      "x": 470,
+      "y": 1090,
+      "w": 390,
+      "text": "RECEPCIÓN · ALTERNATIVA\n\nSin pestañas: se invierte el orden y los pendientes van primero, con los tres más urgentes y un \"Ver los 13\". La información queda debajo, como referencia.\n\nA favor: un solo scroll, nada escondido.\nEn contra: la información de la recepción baja de jerarquía justo cuando más se consulta (semanas previas), y el scroll sigue siendo largo."
+    },
+    {
+      "id": "nota-desktop",
+      "x": 0,
+      "y": 2230,
+      "w": 860,
+      "text": "RECEPCIÓN · ESCRITORIO\n\nEn escritorio no hacen falta pestañas: hay ancho para las dos cosas a la vez. Pendientes a la izquierda con el filtro en la misma línea del título, información en el riel de 380px a la derecha — la misma proporción que ya usa el Resumen.\n\nLa alerta de contrato cruza el ancho completo, encima de las dos columnas, con el mismo tratamiento que en móvil.\n\nAsí el mismo contenido se ordena por prioridad en los dos tamaños: pendientes primero, información como apoyo. La diferencia es solo si caben lado a lado o hay que separarlos en pestañas."
+    }
+  ],
+  "launch": {
+    "view": "canvas"
+  }
+}

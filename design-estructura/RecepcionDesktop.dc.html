@@ -1,0 +1,177 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600&family=Instrument+Serif&display=swap">
+  <style>
+    body { margin: 0; background: #f5f1ec; font-family: "Instrument Sans", "Helvetica Neue", Arial, sans-serif; -webkit-font-smoothing: antialiased; }
+    * { box-sizing: border-box; }
+    a { color: #c0563d; } a:hover { color: #8f3d28; }
+    .navitem { display: flex; min-height: 44px; padding: 0 14px; border: 0; border-radius: 14px; gap: 11px; align-items: center; background: transparent; color: #78706b; font-size: 12.5px; font-weight: 500; text-align: left; }
+    .navitem.active { background: #f5f1ec; color: #1c1917; font-weight: 600; }
+    .card { border-radius: 20px; background: #ffffff; box-shadow: 0 1px 2px rgba(28, 25, 23, 0.04), 0 8px 24px rgba(28, 25, 23, 0.045); }
+    .grouptitle { display: flex; height: 24px; gap: 10px; align-items: center; color: #a29a93; font-size: 10px; font-weight: 500; letter-spacing: 0.11em; text-transform: uppercase; }
+    .rule { height: 1px; flex-grow: 1; background: #e6dfd7; }
+    .pill { padding: 7px 10px; border-radius: 14px; background: #efebe6; color: #78706b; font-size: 9.5px; font-weight: 500; line-height: 1; white-space: nowrap; }
+  </style>
+</helmet>
+
+<div style="display: grid; width: 1440px; min-height: 780px; grid-template-columns: 260px minmax(0, 1fr); background: #f5f1ec">
+
+  <aside style="display: flex; padding: 26px 18px 22px; flex-direction: column; gap: 4px; border-right: 1px solid #f0ebe4; background: #ffffff">
+    <div style="display: flex; margin-bottom: 18px; gap: 10px; align-items: center">
+      <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#c0563d" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21s-7-4.6-7-9.6A4.4 4.4 0 0 1 12 8a4.4 4.4 0 0 1 7 3.4c0 5-7 9.6-7 9.6z"></path></svg>
+      <strong style="color: #1c1917; font-family: 'Instrument Serif', Georgia, serif; font-size: 19px; font-weight: 400">Nuestra boda</strong>
+    </div>
+    <span style="margin-bottom: 6px; color: #a29a93; font-size: 10px; font-weight: 500; letter-spacing: 0.11em; text-transform: uppercase">Panel</span>
+    <button type="button" class="navitem"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 10.5 12 3l9 7.5V20a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"></path></svg>Resumen</button>
+    <button type="button" class="navitem"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M6 21V9l6-5 6 5v12"></path><path d="M10 21v-5h4v5M12 4V2"></path></svg>Iglesia<span style="margin-left: auto; color: #a29a93; font-size: 11px">5</span></button>
+    <button type="button" class="navitem active"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20V9a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v11"></path><path d="M8 7V5a4 4 0 0 1 8 0v2M3 20h18"></path></svg>Recepción<span style="margin-left: auto; color: #c0563d; font-size: 11px; font-weight: 600">13</span></button>
+    <button type="button" class="navitem"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6h16M4 12h16M4 18h10"></path></svg>General<span style="margin-left: auto; color: #a29a93; font-size: 11px">11</span></button>
+    <button type="button" class="navitem"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M16 20v-2a4 4 0 0 0-4-4H7a4 4 0 0 0-4 4v2"></path><circle cx="9.5" cy="7" r="3.5"></circle><path d="M17 11a3.5 3.5 0 1 0-2-6.4"></path></svg>Invitados</button>
+
+    <div style="display: flex; margin-top: auto; padding: 15px 16px; border-radius: 18px; flex-direction: column; gap: 8px; background: #f5f1ec">
+      <span style="display: flex; gap: 7px; align-items: center; color: #a29a93; font-size: 10px; font-weight: 500; letter-spacing: 0.11em; text-transform: uppercase">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="16" rx="3"></rect><path d="M8 3v4M16 3v4M3 11h18"></path></svg>
+        Cuenta regresiva
+      </span>
+      <span style="color: #78706b; font-size: 11px; line-height: 1.3">Sábado 3 de octubre de 2026</span>
+      <span style="display: flex; gap: 6px; align-items: baseline">
+        <strong style="color: #c0563d; font-family: 'Instrument Serif', Georgia, serif; font-size: 34px; font-weight: 400; line-height: 1">34</strong>
+        <small style="color: #a29a93; font-size: 10.5px">días · 11:00 a.m.</small>
+      </span>
+    </div>
+  </aside>
+
+  <main style="display: flex; padding: 30px 40px 36px; flex-direction: column; gap: 18px; min-width: 0">
+
+    <header style="display: flex; gap: 16px; align-items: flex-start; justify-content: space-between">
+      <div style="display: flex; flex-direction: column; gap: 7px">
+        <h1 style="margin: 0; color: #1c1917; font-family: 'Instrument Serif', Georgia, serif; font-size: 30px; font-weight: 400; letter-spacing: -0.025em; line-height: 1">Recepción</h1>
+        <p style="display: flex; margin: 0; gap: 13px; align-items: center; color: #78706b; font-size: 10.5px; line-height: 1.2">
+          <span>13 pendientes por cerrar</span><span style="color: #c4bcb4">+</span><span>1 lista</span><span style="color: #c4bcb4">+</span><span>116 invitados</span>
+        </p>
+      </div>
+      <button type="button" style="display: flex; min-height: 40px; padding: 0 16px; border: 0; border-radius: 14px; gap: 8px; align-items: center; background: #1c1917; color: #faf8f5; font-size: 12px; font-weight: 500">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"></path></svg>
+        Agregar pendiente
+      </button>
+    </header>
+
+    <div style="display: grid; padding: 14px 18px; border: 1px solid #f0dbd2; border-radius: 20px; grid-template-columns: 22px minmax(0, 1fr) auto auto; gap: 14px; align-items: center; background: #f8ece7">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#8f3d28" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"></path><path d="M12 9v4M12 17h.01"></path></svg>
+      <span style="display: flex; gap: 10px; align-items: baseline; min-width: 0">
+        <strong style="color: #8f3d28; font-size: 13px; font-weight: 600">Contrato y cotización final</strong>
+        <span style="color: #a5654f; font-size: 11px">Recepción · esperando respuesta del salón · responsable Ambos</span>
+      </span>
+      <span style="padding: 7px 10px; border-radius: 14px; background: #ffffff; color: #8f3d28; font-size: 9.5px; font-weight: 500; line-height: 1; white-space: nowrap">Vence el 7 de septiembre</span>
+      <button type="button" style="min-height: 34px; padding: 0 14px; border: 1px solid #e2c4b8; border-radius: 14px; background: transparent; color: #8f3d28; font-size: 11.5px; font-weight: 500">Abrir</button>
+    </div>
+
+    <div style="display: grid; grid-template-columns: minmax(0, 1fr) 380px; gap: 20px; align-items: start">
+
+      <section style="display: flex; flex-direction: column; gap: 12px; min-width: 0">
+        <div style="display: flex; gap: 16px; align-items: center; justify-content: space-between">
+          <div class="grouptitle" style="flex-grow: 1"><span>Pendientes por cerrar</span><span class="rule"></span></div>
+          <div style="display: flex; gap: 6px; flex: 0 0 auto">
+            <button type="button" style="min-height: 30px; padding: 0 13px; border: 0; border-radius: 16px; background: #efebe6; color: #1c1917; font-size: 11px; font-weight: 600">Todas</button>
+            <button type="button" style="min-height: 30px; padding: 0 13px; border: 1px solid #e6dfd7; border-radius: 16px; background: transparent; color: #78706b; font-size: 11px; font-weight: 500">Novio</button>
+            <button type="button" style="min-height: 30px; padding: 0 13px; border: 1px solid #e6dfd7; border-radius: 16px; background: transparent; color: #78706b; font-size: 11px; font-weight: 500">Novia</button>
+            <button type="button" style="min-height: 30px; padding: 0 13px; border: 1px solid #e6dfd7; border-radius: 16px; background: transparent; color: #78706b; font-size: 11px; font-weight: 500">Ambos</button>
+          </div>
+        </div>
+
+        <div style="display: grid; gap: 8px">
+          <div class="card" style="display: grid; min-height: 62px; padding: 12px 16px; grid-template-columns: 24px minmax(0, 1fr) 120px 90px; gap: 14px; align-items: center">
+            <span style="display: grid; width: 22px; height: 22px; border: 1.5px solid #d8cfc7; border-radius: 50%"></span>
+            <span style="display: flex; flex-direction: column; gap: 3px; min-width: 0"><strong style="color: #1c1917; font-size: 13px; font-weight: 600; line-height: 1.25">Contrato y cotización final</strong><span style="color: #78706b; font-size: 10.5px; line-height: 1.3">Revisar versión definitiva, pagos incluidos</span></span>
+            <span style="padding: 7px 10px; border-radius: 14px; background: #f5e8e3; color: #8f3d28; font-size: 9.5px; font-weight: 500; line-height: 1; text-align: center">7 SEPT</span>
+            <span style="color: #a29a93; font-size: 10.5px; text-align: right">Ambos · Alta</span>
+          </div>
+          <div class="card" style="display: grid; min-height: 62px; padding: 12px 16px; grid-template-columns: 24px minmax(0, 1fr) 120px 90px; gap: 14px; align-items: center">
+            <span style="display: grid; width: 22px; height: 22px; border: 1.5px solid #d8cfc7; border-radius: 50%"></span>
+            <span style="display: flex; flex-direction: column; gap: 3px; min-width: 0"><strong style="color: #1c1917; font-size: 13px; font-weight: 600; line-height: 1.25">DJ, equipo y staff</strong><span style="color: #78706b; font-size: 10.5px; line-height: 1.3">Confirmar montaje, horas y requerimientos</span></span>
+            <span></span>
+            <span style="color: #a29a93; font-size: 10.5px; text-align: right">Novio · Alta</span>
+          </div>
+          <div class="card" style="display: grid; min-height: 62px; padding: 12px 16px; grid-template-columns: 24px minmax(0, 1fr) 120px 90px; gap: 14px; align-items: center">
+            <span style="display: grid; width: 22px; height: 22px; border: 1.5px solid #d8cfc7; border-radius: 50%"></span>
+            <span style="display: flex; flex-direction: column; gap: 3px; min-width: 0"><strong style="color: #1c1917; font-size: 13px; font-weight: 600; line-height: 1.25">Itinerario de la noche</strong><span style="color: #78706b; font-size: 10.5px; line-height: 1.3">Recepción 5:00 p.m. · cena · baile · cierre 11:00</span></span>
+            <span></span>
+            <span style="color: #a29a93; font-size: 10.5px; text-align: right">Ambos · Media</span>
+          </div>
+          <div class="card" style="display: grid; min-height: 62px; padding: 12px 16px; grid-template-columns: 24px minmax(0, 1fr) 120px 90px; gap: 14px; align-items: center">
+            <span style="display: grid; width: 22px; height: 22px; border: 1.5px solid #d8cfc7; border-radius: 50%"></span>
+            <span style="display: flex; flex-direction: column; gap: 3px; min-width: 0"><strong style="color: #1c1917; font-size: 13px; font-weight: 600; line-height: 1.25">Transporte de invitados</strong><span style="color: #78706b; font-size: 10.5px; line-height: 1.3">Definir quién necesita traslado y el regreso</span></span>
+            <span></span>
+            <span style="color: #a29a93; font-size: 10.5px; text-align: right">Novio · Media</span>
+          </div>
+          <div class="card" style="display: grid; min-height: 62px; padding: 12px 16px; grid-template-columns: 24px minmax(0, 1fr) 120px 90px; gap: 14px; align-items: center">
+            <span style="display: grid; width: 22px; height: 22px; border: 1.5px solid #d8cfc7; border-radius: 50%"></span>
+            <span style="display: flex; flex-direction: column; gap: 3px; min-width: 0"><strong style="color: #1c1917; font-size: 13px; font-weight: 600; line-height: 1.25">Primer baile</strong><span style="color: #78706b; font-size: 10.5px; line-height: 1.3">Definir canción, ensayo y momento</span></span>
+            <span></span>
+            <span style="color: #a29a93; font-size: 10.5px; text-align: right">Ambos · Baja</span>
+          </div>
+        </div>
+
+        <div class="grouptitle" style="margin-top: 6px"><span>Listas: 1</span><span class="rule"></span></div>
+        <div class="card" style="display: grid; min-height: 62px; padding: 12px 16px; grid-template-columns: 24px minmax(0, 1fr) 120px 90px; gap: 14px; align-items: center; box-shadow: 0 1px 2px rgba(28, 25, 23, 0.025), 0 5px 18px rgba(28, 25, 23, 0.035)">
+          <span style="display: grid; width: 22px; height: 22px; border: 1.5px solid #6f7f63; border-radius: 50%; place-items: center; background: #6f7f63"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#ffffff" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="m5 13 4 4L19 7"></path></svg></span>
+          <span style="display: flex; flex-direction: column; gap: 3px; min-width: 0"><strong style="color: #78706b; font-size: 13px; font-weight: 400; line-height: 1.25">Reserva del salón</strong><span style="color: #a29a93; font-size: 10.5px; line-height: 1.3">Anticipo pagado el 2 de agosto</span></span>
+          <span style="padding: 7px 10px; border-radius: 14px; background: #eaf0e6; color: #53634a; font-size: 9.5px; font-weight: 500; line-height: 1; text-align: center">Listo</span>
+          <span style="color: #a29a93; font-size: 10.5px; text-align: right">Ambos</span>
+        </div>
+      </section>
+
+      <aside style="display: flex; flex-direction: column; gap: 12px; min-width: 0">
+        <div class="grouptitle"><span>Información de la recepción</span><span class="rule"></span></div>
+
+        <div class="card" style="display: flex; padding: 16px 18px; flex-direction: column; gap: 12px">
+          <div style="display: flex; gap: 10px; align-items: flex-start; justify-content: space-between">
+            <span style="display: flex; flex-direction: column; gap: 3px"><strong style="color: #1c1917; font-size: 13px; font-weight: 600">Invitados de la recepción</strong><small style="color: #a29a93; font-size: 10.5px">Confirmaciones del formulario</small></span>
+            <button type="button" style="display: flex; border: 0; gap: 5px; align-items: center; background: transparent; color: #78706b; font-size: 11px; font-weight: 500">Ver lista<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="m9 6 6 6-6 6"></path></svg></button>
+          </div>
+          <div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px">
+            <span style="display: flex; gap: 6px; align-items: baseline"><strong style="color: #6f7f63; font-family: 'Instrument Serif', Georgia, serif; font-size: 28px; font-weight: 400; line-height: 1">78</strong><span style="color: #a29a93; font-size: 10.5px">confirmados</span></span>
+            <span style="display: flex; gap: 6px; align-items: baseline"><strong style="color: #c0563d; font-family: 'Instrument Serif', Georgia, serif; font-size: 28px; font-weight: 400; line-height: 1">38</strong><span style="color: #a29a93; font-size: 10.5px">por confirmar</span></span>
+          </div>
+          <span style="color: #a29a93; font-size: 10.5px">116 personas registradas · 28 pollo · 48 carne</span>
+        </div>
+
+        <div class="card" style="display: grid; padding: 13px 14px; grid-template-columns: 36px minmax(0, 1fr) auto; gap: 11px; align-items: center">
+          <span style="display: grid; width: 36px; height: 36px; border-radius: 50%; place-items: center; background: #f5f1ec"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#78706b" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"></circle><path d="M12 7v5l3 2"></path></svg></span>
+          <span style="display: flex; flex-direction: column; gap: 3px; min-width: 0"><small style="color: #a29a93; font-size: 10.5px">Hora y lugar</small><strong style="color: #1c1917; font-size: 12.5px; font-weight: 600">5:00 p.m. · por confirmar</strong></span>
+          <span class="pill">Pendiente</span>
+        </div>
+
+        <div class="card" style="display: grid; padding: 13px 14px; grid-template-columns: 36px minmax(0, 1fr) auto; gap: 11px; align-items: center">
+          <span style="display: grid; width: 36px; height: 36px; border-radius: 50%; place-items: center; background: #f5f1ec"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#78706b" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18V6l10-2v12"></path><circle cx="7" cy="18" r="2"></circle><circle cx="17" cy="16" r="2"></circle></svg></span>
+          <span style="display: flex; flex-direction: column; gap: 3px; min-width: 0"><small style="color: #a29a93; font-size: 10.5px">DJ, equipo y staff</small><strong style="color: #1c1917; font-size: 12.5px; font-weight: 600">Montaje por confirmar</strong></span>
+          <span class="pill">Pendiente</span>
+        </div>
+
+        <div class="card" style="display: grid; padding: 13px 14px; grid-template-columns: 36px minmax(0, 1fr) auto; gap: 11px; align-items: center">
+          <span style="display: grid; width: 36px; height: 36px; border-radius: 50%; place-items: center; background: #f5f1ec"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#78706b" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v18M5 8h14M7 21h10"></path></svg></span>
+          <span style="display: flex; flex-direction: column; gap: 3px; min-width: 0"><small style="color: #a29a93; font-size: 10.5px">Itinerario</small><strong style="color: #1c1917; font-size: 12.5px; font-weight: 600">Horarios por definir</strong></span>
+          <span class="pill">Pendiente</span>
+        </div>
+
+        <div class="card" style="display: grid; padding: 13px 14px; grid-template-columns: 36px minmax(0, 1fr) auto; gap: 11px; align-items: center">
+          <span style="display: grid; width: 36px; height: 36px; border-radius: 50%; place-items: center; background: #f5f1ec"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#78706b" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 17h14l-1.5-6.5A3 3 0 0 0 14.6 8H9.4a3 3 0 0 0-2.9 2.5z"></path><circle cx="7.5" cy="17.5" r="1.5"></circle><circle cx="16.5" cy="17.5" r="1.5"></circle></svg></span>
+          <span style="display: flex; flex-direction: column; gap: 3px; min-width: 0"><small style="color: #a29a93; font-size: 10.5px">Transporte</small><strong style="color: #1c1917; font-size: 12.5px; font-weight: 600">Uber o transporte interno</strong></span>
+          <span class="pill">Pendiente</span>
+        </div>
+      </aside>
+
+    </div>
+
+  </main>
+</div>
+</x-dc>
+</body>
+</html>
