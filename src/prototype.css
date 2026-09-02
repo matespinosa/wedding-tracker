@@ -454,6 +454,31 @@
   height: 13px;
 }
 
+/* La copia de la fila es el botón que abre el detalle; el chevron lo anuncia. */
+.task-open {
+  display: flex;
+  min-width: 0;
+  padding: 0;
+  border: 0;
+  gap: 8px;
+  align-items: center;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+}
+
+.task-open .task-copy {
+  flex: 1;
+}
+
+.task-chevron {
+  width: 13px;
+  height: 13px;
+  flex: none;
+  color: var(--faint);
+}
+
 .task-copy {
   display: flex;
   min-width: 0;
@@ -1250,6 +1275,28 @@
   color: var(--accent) !important;
 }
 
+/* Recepción e Iglesia son dos listas distintas, no un filtro más. */
+.audience-tabs {
+  margin: 14px 0 0;
+}
+
+.audience-tabs button {
+  flex: 1;
+  padding: 0 12px;
+}
+
+.audience-note {
+  margin: 11px 0 0;
+  color: var(--muted);
+  font-size: 10.5px;
+  line-height: 1.35;
+}
+
+.status-pill.guest-open-pill {
+  background: #f1ede8;
+  color: var(--muted);
+}
+
 .guest-filters {
   margin-top: 13px;
 }
@@ -1431,40 +1478,89 @@
   font-size: 11.5px;
 }
 
+/* --- Barra inferior flotante, vidrio líquido estilo iOS --------------- */
+
+/* Cápsula suspendida sobre el contenido: el fondo se desenfoca y se
+   sobresatura, y los bordes llevan el reflejo especular que le da el volumen. */
 .bottom-nav {
   position: absolute;
   z-index: 20;
-  right: 0;
-  bottom: 0;
-  left: 0;
+  right: 12px;
+  bottom: calc(10px + var(--device-safe-area-bottom, 34px));
+  left: 12px;
   display: grid;
-  height: calc(72px + var(--device-safe-area-bottom, 34px));
-  padding: 8px 10px var(--device-safe-area-bottom, 34px);
+  padding: 7px 6px;
+  border-radius: 27px;
   grid-template-columns: repeat(4, 1fr);
-  background: var(--surface);
-  box-shadow: 0 -1px 0 rgba(28, 25, 23, 0.05), 0 -8px 24px rgba(28, 25, 23, 0.035);
-  transition: opacity 140ms ease, transform 180ms ease;
+  background: rgba(255, 253, 251, 0.62);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.95),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.5),
+    inset 0 -1px 1px rgba(28, 25, 23, 0.04),
+    0 1px 1px rgba(28, 25, 23, 0.04),
+    0 10px 26px rgba(28, 25, 23, 0.11),
+    0 22px 48px rgba(28, 25, 23, 0.07);
+  transition: opacity 160ms ease, transform 320ms cubic-bezier(0.32, 0.72, 0, 1);
+  -webkit-backdrop-filter: blur(22px) saturate(185%);
+  backdrop-filter: blur(22px) saturate(185%);
+}
+
+/* Sin backdrop-filter el vidrio se vería como un velo sucio: va opaco. */
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  .bottom-nav {
+    background: rgba(255, 253, 251, 0.96);
+  }
 }
 
 .bottom-nav.nav-hidden {
   opacity: 0;
   pointer-events: none;
-  transform: translateY(100%);
+  transform: translateY(calc(100% + 24px));
 }
 
 .bottom-nav button {
+  position: relative;
   display: flex;
   min-width: 0;
-  padding: 4px 2px;
+  padding: 7px 2px;
   border: 0;
+  border-radius: 21px;
   flex-direction: column;
   gap: 5px;
   align-items: center;
   justify-content: center;
   background: transparent;
-  color: var(--soft);
+  color: var(--muted);
   font-size: 9.5px;
   font-weight: 500;
+  transition: color 200ms ease;
+}
+
+/* La pastilla del ítem activo: otra capa de vidrio, más clara y con brillo. */
+.bottom-nav button::before {
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.96), rgba(255, 255, 255, 0.55));
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 1),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.7),
+    0 1px 2px rgba(28, 25, 23, 0.07);
+  content: "";
+  opacity: 0;
+  transform: scale(0.82);
+  transition: opacity 220ms ease, transform 320ms cubic-bezier(0.32, 0.72, 0, 1);
+}
+
+.bottom-nav button.active::before {
+  opacity: 1;
+  transform: scale(1);
+}
+
+.bottom-nav button svg,
+.bottom-nav button span {
+  position: relative;
+  z-index: 1;
 }
 
 .bottom-nav button svg {
@@ -1726,6 +1822,33 @@
   color: #8a827b;
 }
 
+/* Borrar viaja al Sheet y no se deshace: el primer toque solo lo arma. */
+.danger-button {
+  display: flex;
+  min-height: 46px;
+  padding: 0 18px;
+  border: 1px solid #e6d3cc;
+  border-radius: 16px;
+  gap: 8px;
+  align-items: center;
+  justify-content: center;
+  background: #fdf5f2;
+  color: var(--urgent);
+  font-size: 12.5px;
+  font-weight: 600;
+}
+
+.danger-button svg {
+  width: 15px;
+  height: 15px;
+}
+
+.danger-button.armed {
+  border-color: var(--urgent);
+  background: var(--urgent);
+  color: #fdf5f2;
+}
+
 .guest-actions > div {
   display: grid;
   gap: 9px;
@@ -1842,8 +1965,7 @@
 }
 
 .wedding-app[data-shell="web"] .bottom-nav {
-  height: calc(72px + env(safe-area-inset-bottom, 0px));
-  padding-bottom: env(safe-area-inset-bottom, 0px);
+  bottom: calc(10px + env(safe-area-inset-bottom, 0px));
 }
 
 /* El atributo hidden tiene que ganarle al display: flex del breakpoint. */
@@ -2979,6 +3101,12 @@
     font-weight: 500;
     letter-spacing: 0.11em;
     text-transform: uppercase;
+  }
+
+  /* La lista de la iglesia no lleva plato ni confirmación: una columna menos. */
+  .wedding-app[data-shell="web"] .guests-page[data-audience="Iglesia"] .guest-table-head,
+  .wedding-app[data-shell="web"] .guests-page[data-audience="Iglesia"] .guest-card {
+    grid-template-columns: minmax(0, 1fr) 96px 120px 130px 132px;
   }
 
   .wedding-app[data-shell="web"] .guest-list {

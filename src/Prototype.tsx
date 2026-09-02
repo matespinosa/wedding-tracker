@@ -22,6 +22,7 @@ import {
   ReaderIcon,
   SpeakerLoudIcon,
   StopwatchIcon,
+  TrashIcon,
 } from "@radix-ui/react-icons";
 import "@fontsource/instrument-serif/400.css";
 import "@fontsource/instrument-sans/400.css";
@@ -60,6 +61,8 @@ type GuestGroup = {
   actualizado?: string;
 };
 
+/** Las dos listas de invitados: la iglesia es abierta, la recepción confirma. */
+type GuestAudience = "Recepción" | "Iglesia";
 type CorteRol = "Dama de la corte" | "Caballero de la corte" | "Testigo" | "Pajecito";
 type ChurchTab = "Ceremonia" | "Corte ceremonial";
 type ReceptionTab = "Información" | "Pendientes";
@@ -97,6 +100,8 @@ type BeforeInstallPromptEvent = Event & {
 type PendingMutation = {
   hoja: "Config" | "Tareas" | "Invitados" | "Corte" | "Iglesia" | "Recepcion";
   payload: Record<string, unknown>;
+  /** El Web App acepta crear, actualizar y borrar; sin esto seguimos actualizando. */
+  accion?: "actualizar" | "borrar";
 };
 
 type SheetResponse = {
@@ -293,6 +298,33 @@ function peopleCount(groups: GuestGroup[], status?: GuestStatus) {
   return groups
     .filter((group) => (status ? group.rsvp === status : true))
     .reduce((total, group) => total + group.personas, 0);
+}
+
+/**
+ * La iglesia es de puertas abiertas: quien va solo a la ceremonia no confirma
+ * asistencia. Por eso todos los conteos de RSVP se calculan sobre esta lista y
+ * no sobre la lista completa, que mezclaba las dos audiencias.
+ */
+function needsRsvp(guest: GuestGroup) {
+  return guest.invitado_a !== "Iglesia";
+}
+
+function receptionList(guests: GuestGroup[]) {
+  return guests.filter(needsRsvp);
+}
+
+function churchList(guests: GuestGroup[]) {
+  return guests.filter((guest) => guest.invitado_a === "Iglesia" || guest.invitado_a === "Ambas");
+}
+
+function audienceList(guests: GuestGroup[], audience: GuestAudience) {
+  return audience === "Iglesia" ? churchList(guests) : receptionList(guests);
+}
+
+function audienceLabel(value: GuestGroup["invitado_a"]) {
+  if (value === "Ambas") return "iglesia y recepción";
+  if (value === "Iglesia") return "solo iglesia";
+  return "recepción";
 }
 
 function parsePlato(value: unknown): Meal | undefined {
@@ -543,6 +575,10 @@ async function fetchVersion(settings: Settings) {
   }
 }
 
+function createTaskDraft(section: Section): Task {
+  return { id: `task-${Date.now()}`, seccion: section, titulo: "", detalle: "", responsable: "Ambos", estado: "Pendiente", prioridad: "Media" };
+}
+
 function createCorteId() {
   return `corte-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
 }
@@ -553,7 +589,7 @@ async function sendMutation(settings: Settings, mutation: PendingMutation) {
   const response = await fetch(apiUrl, {
     method: "POST",
     headers: { "Content-Type": "text/plain;charset=utf-8" },
-    body: JSON.stringify({ accion: "actualizar", hoja: mutation.hoja, token, payload: mutation.payload }),
+    body: JSON.stringify({ accion: mutation.accion ?? "actualizar", hoja: mutation.hoja, token, payload: mutation.payload }),
   });
   if (!response.ok) throw new Error("No se pudo sincronizar");
   const result = (await response.json()) as { ok?: boolean };
@@ -586,8 +622,10 @@ export default function Prototype() {
   const [recepcion, setRecepcion] = useState<LogisticsItem[]>(initial.recepcion);
   const [settings, setSettings] = useState<Settings>(initial.settings);
   const [settingsDraft, setSettingsDraft] = useState<Settings>(initial.settings);
-  const [sheet, setSheet] = useState<"settings" | "task" | "guest" | "guest-detail" | "church-person" | "church-person-new" | "logistics-detail" | null>(null);
+  const [sheet, setSheet] = useState<"settings" | "task" | "task-detail" | "guest" | "guest-detail" | "church-person" | "church-person-new" | "logistics-detail" | null>(null);
   const [selectedGuestId, setSelectedGuestId] = useState<string | null>(null);
+  const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
+  const [guestAudience, setGuestAudience] = useState<GuestAudience>("Recepción");
   const [selectedCorteId, setSelectedCorteId] = useState<string | null>(null);
   const [selectedLogisticsSection, setSelectedLogisticsSection] = useState<"Iglesia" | "Recepción" | null>(null);
   const [selectedLogisticsKey, setSelectedLogisticsKey] = useState<string | null>(null);
@@ -756,12 +794,21 @@ export default function Prototype() {
     }
   };
 
+  const updateTask = (updated: Task) => {
+    setTasks((items) => items.map((task) => task.id === updated.id ? updated : task));
+    void persistMutation({ hoja: "Tareas", payload: updated as unknown as Record<string, unknown> });
+  };
+
   const updateTaskStatus = (id: string, estado: TaskStatus) => {
     const current = tasks.find((task) => task.id === id);
     if (!current) return;
-    const updated: Task = { ...current, estado };
-    setTasks((items) => items.map((task) => task.id === id ? updated : task));
-    void persistMutation({ hoja: "Tareas", payload: updated as unknown as Record<string, unknown> });
+    updateTask({ ...current, estado });
+  };
+
+  const deleteTask = (id: string) => {
+    setTasks((items) => items.filter((task) => task.id !== id));
+    setSelectedTaskId((current) => current === id ? null : current);
+    void persistMutation({ hoja: "Tareas", accion: "borrar", payload: { id } });
   };
 
   const toggleTask = (id: string) => {
@@ -800,6 +847,16 @@ export default function Prototype() {
   };
 
   const selectedGuest = guests.find((guest) => guest.id === selectedGuestId) ?? null;
+  const selectedTask = tasks.find((task) => task.id === selectedTaskId) ?? null;
+  const openTask = (id: string) => {
+    shell.hideKeyboard();
+    setSelectedTaskId(id);
+    setSheet("task-detail");
+  };
+  const openGuests = (audience: GuestAudience) => {
+    setGuestAudience(audience);
+    navigate("Invitados");
+  };
   const selectedCortePerson = corte.find((person) => person.id === selectedCorteId) ?? null;
   const selectedLogistics = (selectedLogisticsSection === "Recepción" ? recepcion : iglesia).find((item) => item.clave === selectedLogisticsKey) ?? null;
   const openSettings = () => {
@@ -815,9 +872,9 @@ export default function Prototype() {
         <shell.Scroll key={screen} className="app-screen">
           <main className="wedding-screen" data-testid="wedding-screen" aria-live="polite">
             {screen === "Resumen" ? (
-              <SummaryScreen tasks={tasks} guests={guests} settings={settings} connectionState={connectionState} connectionDetail={connectionDetail} onOpenSettings={openSettings} onNavigate={navigate} />
+              <SummaryScreen tasks={tasks} guests={guests} settings={settings} connectionState={connectionState} connectionDetail={connectionDetail} onOpenSettings={openSettings} onNavigate={navigate} onOpenGuests={openGuests} onOpenTask={openTask} />
             ) : screen === "Invitados" ? (
-              <GuestsScreen guests={guests} onAdd={() => setSheet("guest")} onSelect={(id) => { setSelectedGuestId(id); setSheet("guest-detail"); }} />
+              <GuestsScreen guests={guests} audience={guestAudience} onAudienceChange={setGuestAudience} onAdd={() => setSheet("guest")} onSelect={(id) => { setSelectedGuestId(id); setSheet("guest-detail"); }} />
             ) : (
               <SectionScreen
                 section={screen}
@@ -832,7 +889,8 @@ export default function Prototype() {
                 onStatusChange={updateTaskStatus}
                 onSelectCorte={(id) => { setSelectedCorteId(id); setSheet("church-person"); }}
                 onSelectLogistics={(section, key) => { setSelectedLogisticsSection(section); setSelectedLogisticsKey(key); setSheet("logistics-detail"); }}
-                onOpenGuests={() => navigate("Invitados")}
+                onOpenTask={openTask}
+                onOpenGuests={() => openGuests("Recepción")}
               />
             )}
           </main>
@@ -881,13 +939,28 @@ export default function Prototype() {
       </shell.Sheet>
 
       <AddTaskSheet open={sheet === "task"} section={screen === "Resumen" || screen === "Invitados" ? "General" : screen} onClose={() => setSheet(null)} onAdd={(task) => { setTasks((current) => [...current, task]); setSheet(null); void persistMutation({ hoja: "Tareas", payload: task as unknown as Record<string, unknown> }); }} />
-      <AddGuestSheet open={sheet === "guest"} onClose={() => setSheet(null)} onAdd={(guest) => { setGuests((current) => [guest, ...current]); setSheet(null); void persistMutation({ hoja: "Invitados", payload: { ...guest, notas: guest.plato ?? "", acompanantes: Math.max(0, guest.personas - 1) } as unknown as Record<string, unknown> }); }} />
+      <TaskDetailSheet
+        open={sheet === "task-detail" && Boolean(selectedTask)}
+        task={selectedTask}
+        onClose={() => setSheet(null)}
+        onSave={(task) => { updateTask(task); setSheet(null); }}
+        onDelete={(id) => { deleteTask(id); setSheet(null); }}
+      />
+      <AddGuestSheet open={sheet === "guest"} defaultAudience={guestAudience} onClose={() => setSheet(null)} onAdd={(guest) => { setGuests((current) => [guest, ...current]); setSheet(null); void persistMutation({ hoja: "Invitados", payload: { ...guest, notas: guest.plato ?? "", acompanantes: Math.max(0, guest.personas - 1) } as unknown as Record<string, unknown> }); }} />
 
-      <shell.Sheet open={sheet === "guest-detail" && Boolean(selectedGuest)} onOpenChange={(open) => setSheet(open ? "guest-detail" : null)} title={selectedGuest?.nombre ?? "Invitado"} description={selectedGuest ? `${selectedGuest.personas} ${selectedGuest.personas === 1 ? "persona" : "personas"} para ${selectedGuest.invitado_a.toLowerCase()}${selectedGuest.plato ? ` · ${selectedGuest.plato}` : ""}` : undefined}>
+      <shell.Sheet open={sheet === "guest-detail" && Boolean(selectedGuest)} onOpenChange={(open) => setSheet(open ? "guest-detail" : null)} title={selectedGuest?.nombre ?? "Invitado"} description={selectedGuest ? `${selectedGuest.personas} ${selectedGuest.personas === 1 ? "persona" : "personas"} · ${audienceLabel(selectedGuest.invitado_a)}${needsRsvp(selectedGuest) && selectedGuest.plato ? ` · ${selectedGuest.plato}` : ""}` : undefined}>
         {selectedGuest ? (
           <div className="guest-actions">
-            <div><span className="action-label">Confirmación</span><div className="segmented-actions">{(["Pendiente", "Confirmado", "No asiste"] as GuestStatus[]).map((status) => <button key={status} className={selectedGuest.rsvp === status ? "selected" : ""} type="button" onClick={() => updateGuest(selectedGuest.id, { rsvp: status })}>{status}</button>)}</div></div>
-            <div><span className="action-label">Plato</span><div className="segmented-actions">{(["Pollo", "Carne"] as Meal[]).map((meal) => <button key={meal} className={selectedGuest.plato === meal ? "selected" : ""} type="button" onClick={() => updateGuest(selectedGuest.id, { plato: meal })}>{meal}</button>)}</div></div>
+            {/* Primero la audiencia: es lo que separa la lista de la iglesia de la de la recepción. */}
+            <div><span className="action-label">Invitado a</span><div className="segmented-actions">{(["Recepción", "Iglesia", "Ambas"] as GuestGroup["invitado_a"][]).map((option) => <button key={option} className={selectedGuest.invitado_a === option ? "selected" : ""} type="button" onClick={() => updateGuest(selectedGuest.id, { invitado_a: option })}>{option}</button>)}</div></div>
+            {needsRsvp(selectedGuest) ? (
+              <>
+                <div><span className="action-label">Confirmación</span><div className="segmented-actions">{(["Pendiente", "Confirmado", "No asiste"] as GuestStatus[]).map((status) => <button key={status} className={selectedGuest.rsvp === status ? "selected" : ""} type="button" onClick={() => updateGuest(selectedGuest.id, { rsvp: status })}>{status}</button>)}</div></div>
+                <div><span className="action-label">Plato</span><div className="segmented-actions">{(["Pollo", "Carne"] as Meal[]).map((meal) => <button key={meal} className={selectedGuest.plato === meal ? "selected" : ""} type="button" onClick={() => updateGuest(selectedGuest.id, { plato: meal })}>{meal}</button>)}</div></div>
+              </>
+            ) : (
+              <p className="sheet-note">La ceremonia es abierta: este invitado no confirma asistencia ni elige plato. Cámbialo a Recepción o Ambas si sí tiene que confirmar.</p>
+            )}
             <div><span className="action-label">Transporte</span><div className="transport-grid">{(["Uber", "Interno", "Propio", "Por definir"] as Transport[]).map((transport) => <button key={transport} className={selectedGuest.transporte === transport ? "selected" : ""} type="button" onClick={() => updateGuest(selectedGuest.id, { transporte: transport })}>{transport}</button>)}</div></div>
             {selectedGuest.fuente === "formulario" ? <p className="sheet-note">RSVP y plato salen del formulario de la invitación. El transporte se guarda en Tracker_InvitadosExtra; Confirmacion no se reescribe.</p> : null}
           </div>
@@ -1157,13 +1230,15 @@ function KpiCard({ label, value, unit, note, tone, bar }: { label: string; value
   );
 }
 
-function SummaryScreen({ tasks, guests, settings, connectionState, connectionDetail, onNavigate, onOpenSettings }: { tasks: Task[]; guests: GuestGroup[]; settings: Settings; connectionState: "idle" | "syncing" | "success" | "error" | "queued"; connectionDetail: string; onNavigate: (screen: Screen) => void; onOpenSettings: () => void }) {
-  const total = peopleCount(guests);
-  const confirmed = peopleCount(guests, "Confirmado");
-  const pending = peopleCount(guests, "Pendiente");
-  const pendingChurch = guests.filter((group) => group.rsvp === "Pendiente" && group.invitado_a === "Iglesia").reduce((sum, group) => sum + group.personas, 0);
-  const pendingReception = pending - pendingChurch;
-  const pendingGroups = guests.filter((guest) => guest.rsvp === "Pendiente");
+function SummaryScreen({ tasks, guests, settings, connectionState, connectionDetail, onNavigate, onOpenSettings, onOpenGuests, onOpenTask }: { tasks: Task[]; guests: GuestGroup[]; settings: Settings; connectionState: "idle" | "syncing" | "success" | "error" | "queued"; connectionDetail: string; onNavigate: (screen: Screen) => void; onOpenSettings: () => void; onOpenGuests: (audience: GuestAudience) => void; onOpenTask: (id: string) => void }) {
+  // Solo la recepción confirma: la iglesia entra en los conteos como informativo.
+  const reception = receptionList(guests);
+  const church = churchList(guests);
+  const total = peopleCount(reception);
+  const confirmed = peopleCount(reception, "Confirmado");
+  const pending = peopleCount(reception, "Pendiente");
+  const churchTotal = peopleCount(church);
+  const pendingGroups = reception.filter((guest) => guest.rsvp === "Pendiente");
   const doneTasks = tasks.filter((task) => task.estado === "Listo").length;
   const due = nextDueTask(tasks);
   const dueParts = splitDueDate(due?.fecha_limite);
@@ -1185,20 +1260,20 @@ function SummaryScreen({ tasks, guests, settings, connectionState, connectionDet
 
       <WeddingCountdown date={settings.weddingDate} onConfigure={onOpenSettings} />
 
-      <AttentionBlock tasks={attention} onOpen={(task) => onNavigate(task.seccion)} />
+      <AttentionBlock tasks={attention} onOpen={(task) => onOpenTask(task.id)} />
 
       <div className="kpi-strip">
         <KpiCard label="Por confirmar" value={pending} unit="personas" note={`en ${pendingGroups.length} grupos sin responder`} tone="accent" />
-        <KpiCard label="Confirmados" value={confirmed} unit={`de ${total}`} note={`${mealCount(guests, "Pollo")} pollo · ${mealCount(guests, "Carne")} carne`} tone="sage" />
+        <KpiCard label="Confirmados" value={confirmed} unit={`de ${total}`} note={`${mealCount(reception, "Pollo")} pollo · ${mealCount(reception, "Carne")} carne`} tone="sage" />
         <KpiCard label="Pendientes listos" value={doneTasks} unit={`de ${tasks.length}`} bar={tasks.length ? Math.round((doneTasks / tasks.length) * 100) : 0} />
         <KpiCard label="Próximo vencimiento" value={dueParts ? dueParts.day : "—"} unit={dueParts ? `de ${dueParts.month}` : "sin fechas"} note={due ? due.titulo : "Nada con fecha límite"} tone="urgent" />
       </div>
 
       <div className="summary-columns">
         <div className="summary-main">
-          <button className="hero-card" type="button" onClick={() => onNavigate("Invitados")} aria-label={`${pending} personas por confirmar`}>
+          <button className="hero-card" type="button" onClick={() => onOpenGuests("Recepción")} aria-label={`${pending} personas por confirmar para la recepción`}>
             <ProgressRing percent={total ? (confirmed / total) * 100 : 0}><span className="hero-number">{pending}</span><span className="hero-label">por confirmar</span></ProgressRing>
-            <div className="hero-stats"><div><strong>{pendingChurch}</strong><span>Iglesia</span></div><div><strong>{pendingReception}</strong><span>Recepción</span></div><div><strong className="sage-number">{confirmed}</strong><span>Confirmados</span></div></div>
+            <div className="hero-stats"><div><strong className="sage-number">{confirmed}</strong><span>Confirmados</span></div><div><strong>{total}</strong><span>Recepción</span></div><div><strong>{churchTotal}</strong><span>Iglesia</span></div></div>
           </button>
 
           <div className="section-list">
@@ -1225,12 +1300,12 @@ function SummaryScreen({ tasks, guests, settings, connectionState, connectionDet
           <div className="pending-panel">
             <div className="pending-panel-head"><strong>Sin responder</strong><span>{pending} personas</span></div>
             {pendingGroups.slice(0, 5).map((guest) => (
-              <button key={guest.id} className="pending-row" type="button" onClick={() => onNavigate("Invitados")}>
-                <span><strong>{guest.nombre}</strong><small>{guest.invitado_a}, {guest.transporte.toLowerCase()}</small></span>
+              <button key={guest.id} className="pending-row" type="button" onClick={() => onOpenGuests("Recepción")}>
+                <span><strong>{guest.nombre}</strong><small>{audienceLabel(guest.invitado_a)}, {guest.transporte.toLowerCase()}</small></span>
                 <b>{guest.personas}</b>
               </button>
             ))}
-            <button className="pending-panel-more" type="button" onClick={() => onNavigate("Invitados")}>Ver los {pendingGroups.length} grupos &rarr;</button>
+            <button className="pending-panel-more" type="button" onClick={() => onOpenGuests("Recepción")}>Ver los {pendingGroups.length} grupos &rarr;</button>
           </div>
         </aside>
       </div>
@@ -1263,6 +1338,7 @@ function SectionScreen({
   onStatusChange,
   onSelectCorte,
   onSelectLogistics,
+  onOpenTask,
   onOpenGuests,
 }: {
   section: Section;
@@ -1277,6 +1353,7 @@ function SectionScreen({
   onStatusChange: (id: string, status: TaskStatus) => void;
   onSelectCorte: (id: string) => void;
   onSelectLogistics: (section: "Iglesia" | "Recepción", key: string) => void;
+  onOpenTask: (id: string) => void;
   onOpenGuests: () => void;
 }) {
   const [filter, setFilter] = useState<"Todas" | Responsible>("Todas");
@@ -1290,7 +1367,7 @@ function SectionScreen({
   const openCount = sectionTasks.filter((task) => task.estado !== "Listo").length;
   const sectionAttention = attentionTasks(sectionTasks).slice(0, 1);
   const progress = sectionProgress(tasks, section);
-  const receptionGuests = guests.filter((guest) => guest.invitado_a === "Recepción" || guest.invitado_a === "Ambas");
+  const receptionGuests = receptionList(guests);
   const confirmed = peopleCount(receptionGuests, "Confirmado");
   const pendingGuests = peopleCount(receptionGuests, "Pendiente");
   const totalReceptionGuests = peopleCount(receptionGuests);
@@ -1373,7 +1450,7 @@ function SectionScreen({
         </div>
       ) : section === "Recepción" ? (
         <>
-          <AttentionBlock tasks={sectionAttention} onOpen={() => setReceptionTab("Pendientes")} />
+          <AttentionBlock tasks={sectionAttention} onOpen={(task) => onOpenTask(task.id)} />
 
           <div className="reception-module" data-tab={receptionTab}>
             <div className="filter-row reception-tabs" role="tablist" aria-label="Secciones de la recepción">
@@ -1395,8 +1472,8 @@ function SectionScreen({
                   </div>
                 </div>
               </div>
-              <div className="task-list">{pending.map((task) => <TaskRow key={task.id} task={task} onToggle={onToggle} onStatusChange={onStatusChange} />)}{!pending.length ? <div className="empty-state"><CheckIcon /><strong>Todo listo por aquí</strong><span>Prueba otro filtro o agrega un pendiente.</span></div> : null}</div>
-              {complete.length ? <div className="completed-group"><div className="group-title"><span>Listas: {complete.length}</span></div><div className="task-list complete-list">{complete.map((task) => <TaskRow key={task.id} task={task} onToggle={onToggle} onStatusChange={onStatusChange} />)}</div></div> : null}
+              <div className="task-list">{pending.map((task) => <TaskRow key={task.id} task={task} onToggle={onToggle} onStatusChange={onStatusChange} onOpen={onOpenTask} />)}{!pending.length ? <div className="empty-state"><CheckIcon /><strong>Todo listo por aquí</strong><span>Prueba otro filtro o agrega un pendiente.</span></div> : null}</div>
+              {complete.length ? <div className="completed-group"><div className="group-title"><span>Listas: {complete.length}</span></div><div className="task-list complete-list">{complete.map((task) => <TaskRow key={task.id} task={task} onToggle={onToggle} onStatusChange={onStatusChange} onOpen={onOpenTask} />)}</div></div> : null}
             </div>
 
             <div className="reception-panel" data-panel="Información" role="tabpanel">
@@ -1454,8 +1531,8 @@ function SectionScreen({
           ) : null}
 
           <div className="section-block reception-tasks-block"><div className="group-title"><span>Pendientes</span></div><div className="filter-row" role="group" aria-label="Filtrar por responsable">{(["Todas", "Novio", "Novia", "Ambos"] as const).map((option) => <button key={option} className={filter === option ? "active" : ""} type="button" onClick={() => setFilter(option)}>{option}</button>)}</div>
-          <div className="task-list">{pending.map((task) => <TaskRow key={task.id} task={task} onToggle={onToggle} onStatusChange={onStatusChange} />)}{!pending.length ? <div className="empty-state"><CheckIcon /><strong>Todo listo por aquí</strong><span>Prueba otro filtro o agrega un pendiente.</span></div> : null}</div>
-          {complete.length ? <div className="completed-group"><div className="group-title"><span>Listas: {complete.length}</span></div><div className="task-list complete-list">{complete.map((task) => <TaskRow key={task.id} task={task} onToggle={onToggle} onStatusChange={onStatusChange} />)}</div></div> : null}
+          <div className="task-list">{pending.map((task) => <TaskRow key={task.id} task={task} onToggle={onToggle} onStatusChange={onStatusChange} onOpen={onOpenTask} />)}{!pending.length ? <div className="empty-state"><CheckIcon /><strong>Todo listo por aquí</strong><span>Prueba otro filtro o agrega un pendiente.</span></div> : null}</div>
+          {complete.length ? <div className="completed-group"><div className="group-title"><span>Listas: {complete.length}</span></div><div className="task-list complete-list">{complete.map((task) => <TaskRow key={task.id} task={task} onToggle={onToggle} onStatusChange={onStatusChange} onOpen={onOpenTask} />)}</div></div> : null}
           </div>
         </>
       )}
@@ -1566,24 +1643,80 @@ function LogisticsDetailSheet({
   );
 }
 
+function TaskDetailSheet({
+  open,
+  task,
+  onClose,
+  onSave,
+  onDelete,
+}: {
+  open: boolean;
+  task: Task | null;
+  onClose: () => void;
+  onSave: (task: Task) => void;
+  onDelete: (id: string) => void;
+}) {
+  const [draft, setDraft] = useState<Task | null>(task);
+  // Borrar es irreversible y viaja al Sheet: pedimos un segundo toque.
+  const [confirmDelete, setConfirmDelete] = useState(false);
+  const shell = useShell();
+
+  useEffect(() => {
+    setDraft(task ? { ...task } : null);
+    setConfirmDelete(false);
+  }, [task, open]);
+
+  // Cualquier otra edición desarma el borrado: si cambiaron de idea, el botón
+  // rojo no se queda esperando un toque accidental.
+  const edit = (changes: Partial<Task>) => {
+    setConfirmDelete(false);
+    setDraft((current) => current ? { ...current, ...changes } : current);
+  };
+
+  return (
+    <shell.Sheet open={open} onOpenChange={(next) => { if (!next) onClose(); }} title={draft?.titulo.trim() || "Pendiente"} description={draft ? `Pendiente de ${draft.seccion}. Completa la información, cambia el estado o elimínalo.` : undefined}>
+      {draft ? (
+        <div className="sheet-form church-sheet-form">
+          <div className="sheet-overview" tabIndex={0} aria-label={`${draft.titulo}: ${draft.estado}`}>
+            <span>{draft.seccion} · {draft.prioridad}</span>
+            <strong>{draft.estado}</strong>
+            <small>{draft.detalle.trim() || "Todavía no hay información. Agrégala abajo."}</small>
+          </div>
+          <label className="field-block" htmlFor={`task-title-${draft.id}`}><span>Pendiente</span><shell.Field id={`task-title-${draft.id}`} placeholder="Ej. Confirmar música" value={draft.titulo} onChange={(event) => edit({ titulo: event.target.value })} /></label>
+          <label className="field-block" htmlFor={`task-detail-${draft.id}`}><span>Información y notas</span><shell.Field id={`task-detail-${draft.id}`} placeholder="Siguiente paso, contacto o recordatorio" value={draft.detalle} onChange={(event) => edit({ detalle: event.target.value })} /></label>
+          <label className="field-block" htmlFor={`task-due-${draft.id}`}><span>Fecha límite</span><shell.Field id={`task-due-${draft.id}`} inputMode="numeric" placeholder="AAAA-MM-DD (opcional)" value={draft.fecha_limite ?? ""} onChange={(event) => edit({ fecha_limite: event.target.value })} /></label>
+          <div><span className="action-label">Estado</span><div className="segmented-actions">{(["Pendiente", "En progreso", "Listo"] as TaskStatus[]).map((status) => <button key={status} className={draft.estado === status ? "selected" : ""} type="button" onClick={() => edit({ estado: status })}>{status}</button>)}</div></div>
+          <div><span className="action-label">Responsable</span><div className="segmented-actions">{(["Novio", "Novia", "Ambos"] as Responsible[]).map((responsible) => <button key={responsible} className={draft.responsable === responsible ? "selected" : ""} type="button" onClick={() => edit({ responsable: responsible })}>{responsible}</button>)}</div></div>
+          <div><span className="action-label">Prioridad</span><div className="segmented-actions">{(["Alta", "Media", "Baja"] as Task["prioridad"][]).map((priority) => <button key={priority} className={draft.prioridad === priority ? "selected" : ""} type="button" onClick={() => edit({ prioridad: priority })}>{priority}</button>)}</div></div>
+          <button className="primary-button" type="button" disabled={!draft.titulo.trim()} onClick={() => { shell.hideKeyboard(); onSave({ ...draft, titulo: draft.titulo.trim(), detalle: draft.detalle.trim(), fecha_limite: draft.fecha_limite?.trim() || undefined }); }}><CheckIcon /> Guardar cambios</button>
+          <button className={`danger-button ${confirmDelete ? "armed" : ""}`} type="button" onClick={() => { shell.hideKeyboard(); if (!confirmDelete) { setConfirmDelete(true); return; } onDelete(draft.id); }}><TrashIcon /> {confirmDelete ? "Toca otra vez para eliminarlo" : "Eliminar pendiente"}</button>
+        </div>
+      ) : null}
+    </shell.Sheet>
+  );
+}
+
 function nextTaskStatus(status: TaskStatus): TaskStatus {
   if (status === "Pendiente") return "En progreso";
   if (status === "En progreso") return "Listo";
   return "Pendiente";
 }
 
-function TaskRow({ task, onToggle, onStatusChange }: { task: Task; onToggle: (id: string) => void; onStatusChange: (id: string, status: TaskStatus) => void }) {
+function TaskRow({ task, onToggle, onStatusChange, onOpen }: { task: Task; onToggle: (id: string) => void; onStatusChange: (id: string, status: TaskStatus) => void; onOpen: (id: string) => void }) {
   const done = task.estado === "Listo";
   const dueParts = splitDueDate(task.fecha_limite);
   const late = isOverdue(task.fecha_limite);
   return (
     <article className={`task-row ${statusTone(task.estado)} ${done ? "done" : ""}`}>
       <button className="task-check" type="button" aria-label={done ? `Marcar ${task.titulo} como pendiente` : `Marcar ${task.titulo} como listo`} onClick={() => onToggle(task.id)}>{done ? <CheckIcon /> : null}</button>
-      <div className="task-copy">
-        <strong>{task.titulo}</strong>
-        {!done ? <span>{task.detalle}{dueParts ? <em className={`task-due ${late ? "late" : ""}`}>{late ? "venció" : "vence"} {dueParts.short}</em> : null}</span> : null}
-        {!done ? <span className="task-tags"><b>{task.responsable}</b><b className={task.prioridad === "Alta" ? "high" : ""}>{task.prioridad}</b></span> : null}
-      </div>
+      <button className="task-open" type="button" aria-label={`Abrir el detalle de ${task.titulo}`} onClick={() => onOpen(task.id)}>
+        <span className="task-copy">
+          <strong>{task.titulo}</strong>
+          {!done ? <span>{task.detalle}{dueParts ? <em className={`task-due ${late ? "late" : ""}`}>{late ? "venció" : "vence"} {dueParts.short}</em> : null}</span> : null}
+          {!done ? <span className="task-tags"><b>{task.responsable}</b><b className={task.prioridad === "Alta" ? "high" : ""}>{task.prioridad}</b></span> : null}
+        </span>
+        <ChevronRightIcon className="task-chevron" />
+      </button>
       <button className={`status-pill task-status-button ${statusTone(task.estado)}`} type="button" aria-label={`Cambiar estado de ${task.titulo}. Siguiente: ${nextTaskStatus(task.estado)}`} onClick={() => onStatusChange(task.id, nextTaskStatus(task.estado))}>
         <i className="status-dot" aria-hidden="true" />{task.estado}
       </button>
@@ -1591,50 +1724,91 @@ function TaskRow({ task, onToggle, onStatusChange }: { task: Task; onToggle: (id
   );
 }
 
-function GuestsScreen({ guests, onAdd, onSelect }: { guests: GuestGroup[]; onAdd: () => void; onSelect: (id: string) => void }) {
-  const [filter, setFilter] = useState<"Pendiente" | "Confirmado" | "Todos">(guests.some((guest) => guest.rsvp === "Pendiente") ? "Pendiente" : "Confirmado");
+function GuestsScreen({ guests, audience, onAudienceChange, onAdd, onSelect }: { guests: GuestGroup[]; audience: GuestAudience; onAudienceChange: (audience: GuestAudience) => void; onAdd: () => void; onSelect: (id: string) => void }) {
+  const [filter, setFilter] = useState<"Pendiente" | "Confirmado" | "Todos">(() => receptionList(guests).some((guest) => guest.rsvp === "Pendiente") ? "Pendiente" : "Confirmado");
   const [searchOpen, setSearchOpen] = useState(false);
   const [query, setQuery] = useState("");
   const shell = useShell();
-  const total = peopleCount(guests);
-  const pending = peopleCount(guests, "Pendiente");
-  const confirmed = peopleCount(guests, "Confirmado");
-  const chicken = mealCount(guests, "Pollo");
-  const beef = mealCount(guests, "Carne");
-  const matching = guests.filter((guest) => guest.nombre.toLocaleLowerCase("es").includes(query.toLocaleLowerCase("es")));
+  const isChurch = audience === "Iglesia";
+  // Cada pestaña es una lista distinta: la iglesia no confirma, la recepción sí.
+  const scoped = audienceList(guests, audience);
+  const total = peopleCount(scoped);
+  const pending = peopleCount(scoped, "Pendiente");
+  const confirmed = peopleCount(scoped, "Confirmado");
+  const chicken = mealCount(scoped, "Pollo");
+  const beef = mealCount(scoped, "Carne");
+  const matching = scoped.filter((guest) => guest.nombre.toLocaleLowerCase("es").includes(query.toLocaleLowerCase("es")));
   const pendingGroups = matching.filter((guest) => guest.rsvp === "Pendiente");
   const recentConfirmed = matching.filter((guest) => guest.rsvp === "Confirmado" && guest.actualizado).slice(0, 2);
-  const visible = filter === "Pendiente" && !query
-    ? [...pendingGroups.slice(0, 4), ...recentConfirmed, ...pendingGroups.slice(4)]
-    : matching.filter((guest) => filter === "Todos" || guest.rsvp === filter);
+  const visible = isChurch
+    ? matching
+    : filter === "Pendiente" && !query
+      ? [...pendingGroups.slice(0, 4), ...recentConfirmed, ...pendingGroups.slice(4)]
+      : matching.filter((guest) => filter === "Todos" || guest.rsvp === filter);
+
+  const switchAudience = (next: GuestAudience) => {
+    shell.hideKeyboard();
+    setSearchOpen(false);
+    setQuery("");
+    onAudienceChange(next);
+  };
+
   return (
-    <section className="guests-page page-shell">
+    <section className="guests-page page-shell" data-audience={audience}>
       <header className="screen-header guests-header">
         {searchOpen ? <div className="search-box"><MagnifyingGlassIcon /><shell.Field autoFocus aria-label="Buscar invitados" placeholder="Buscar nombre" value={query} onChange={(event) => setQuery(event.target.value)} /><button type="button" onClick={() => { shell.hideKeyboard(); setSearchOpen(false); setQuery(""); }}>Cancelar</button></div> : <><h1>Invitados</h1><div className="header-actions"><button className="icon-button" type="button" aria-label="Buscar invitados" onClick={() => setSearchOpen(true)}><MagnifyingGlassIcon /></button><button className="icon-button" type="button" aria-label="Agregar invitados" onClick={onAdd}><PlusIcon /></button></div></>}
       </header>
-      <div className="guest-stats"><div><strong className="accent-number">{pending}</strong><span>sin responder</span></div><div><strong className="sage-number">{confirmed}</strong><span>confirmados</span></div><div><strong>{total}</strong><span>en total</span></div></div>
-      {chicken + beef > 0 ? <p className="meal-breakdown">{chicken} pollo · {beef} carne</p> : null}
-      <div className="filter-row guest-filters" role="group" aria-label="Filtrar invitados"><button className={filter === "Pendiente" ? "active" : ""} type="button" onClick={() => setFilter("Pendiente")}>Sin responder</button><button className={filter === "Confirmado" ? "active" : ""} type="button" onClick={() => setFilter("Confirmado")}>Confirmados</button><button className={filter === "Todos" ? "active" : ""} type="button" onClick={() => setFilter("Todos")}>Todos</button></div>
-      <div className="guest-table-head" aria-hidden="true"><span>Grupo</span><span>Personas</span><span>Invitado a</span><span>Plato</span><span>Transporte</span><span>Confirmación</span></div>
+
+      <div className="filter-row audience-tabs" role="tablist" aria-label="Listas de invitados">
+        {(["Recepción", "Iglesia"] as GuestAudience[]).map((option) => (
+          <button key={option} className={audience === option ? "active" : ""} type="button" role="tab" aria-selected={audience === option} onClick={() => switchAudience(option)}>
+            {option}
+            <span className="tab-count">{peopleCount(audienceList(guests, option))}</span>
+          </button>
+        ))}
+      </div>
+
+      {isChurch ? (
+        <>
+          <p className="audience-note">La ceremonia es abierta: estos invitados no confirman asistencia ni eligen plato.</p>
+          <div className="guest-stats"><div><strong>{total}</strong><span>{total === 1 ? "persona" : "personas"}</span></div><div><strong>{scoped.length}</strong><span>{scoped.length === 1 ? "grupo" : "grupos"}</span></div></div>
+        </>
+      ) : (
+        <>
+          <div className="guest-stats"><div><strong className="accent-number">{pending}</strong><span>sin responder</span></div><div><strong className="sage-number">{confirmed}</strong><span>confirmados</span></div><div><strong>{total}</strong><span>en total</span></div></div>
+          {chicken + beef > 0 ? <p className="meal-breakdown">{chicken} pollo · {beef} carne</p> : null}
+          <div className="filter-row guest-filters" role="group" aria-label="Filtrar invitados"><button className={filter === "Pendiente" ? "active" : ""} type="button" onClick={() => setFilter("Pendiente")}>Sin responder</button><button className={filter === "Confirmado" ? "active" : ""} type="button" onClick={() => setFilter("Confirmado")}>Confirmados</button><button className={filter === "Todos" ? "active" : ""} type="button" onClick={() => setFilter("Todos")}>Todos</button></div>
+        </>
+      )}
+
+      <div className="guest-table-head" aria-hidden="true"><span>Grupo</span><span>Personas</span><span>Invitado a</span>{isChurch ? null : <span>Plato</span>}<span>Transporte</span><span>{isChurch ? "Ceremonia" : "Confirmación"}</span></div>
       <div className="guest-list">
         {visible.map((guest, index) => (
           <div key={guest.id} className="guest-card-wrap">
-            {index > 0 && visible[index - 1]?.rsvp !== guest.rsvp ? <div className="group-title"><span>{guest.rsvp === "Confirmado" ? "Confirmados hace poco" : "Más pendientes"}</span></div> : null}
+            {!isChurch && index > 0 && visible[index - 1]?.rsvp !== guest.rsvp ? <div className="group-title"><span>{guest.rsvp === "Confirmado" ? "Confirmados hace poco" : "Más pendientes"}</span></div> : null}
             <button className="guest-card" type="button" onClick={() => onSelect(guest.id)}>
               <span className="guest-copy">
                 <strong>{guest.nombre}</strong>
                 <small className="guest-meta">
                   <span className="guest-people">{guest.personas} {guest.personas === 1 ? "persona" : "personas"}</span>
-                  <span className="guest-where">{guest.invitado_a}</span>
-                  <span className="guest-meal">{guest.plato ?? "Sin plato"}</span>
+                  <span className="guest-where">{audienceLabel(guest.invitado_a)}</span>
+                  {isChurch ? null : <span className="guest-meal">{guest.plato ?? "Sin plato"}</span>}
                   <span className="guest-transport">{guest.transporte}</span>
                 </small>
               </span>
-              <span className={`status-pill ${guest.rsvp === "Confirmado" ? "confirmed" : guest.rsvp === "No asiste" ? "declined" : ""}`}>{guest.rsvp === "Pendiente" ? "Sin responder" : guest.rsvp}</span>
+              {isChurch
+                ? <span className="status-pill guest-open-pill">{guest.invitado_a === "Ambas" ? "También recepción" : "Sin confirmación"}</span>
+                : <span className={`status-pill ${guest.rsvp === "Confirmado" ? "confirmed" : guest.rsvp === "No asiste" ? "declined" : ""}`}>{guest.rsvp === "Pendiente" ? "Sin responder" : guest.rsvp}</span>}
             </button>
           </div>
         ))}
-        {!visible.length ? <div className="empty-state"><PersonIcon /><strong>No encontramos invitados</strong><span>Cambia el filtro o prueba otro nombre.</span></div> : null}
+        {!visible.length ? (
+          <div className="empty-state">
+            <PersonIcon />
+            <strong>{isChurch ? "Todavía no hay lista de la iglesia" : "No encontramos invitados"}</strong>
+            <span>{isChurch ? "Abre un invitado y cambia «Invitado a» para pasarlo a la ceremonia." : "Cambia el filtro o prueba otro nombre."}</span>
+          </div>
+        ) : null}
       </div>
     </section>
   );
@@ -1651,15 +1825,46 @@ function BottomNav({ current, hidden, onNavigate }: { current: Screen; hidden: b
 }
 
 function AddTaskSheet({ open, section, onClose, onAdd }: { open: boolean; section: Section; onClose: () => void; onAdd: (task: Task) => void }) {
-  const [title, setTitle] = useState("");
-  const [detail, setDetail] = useState("");
+  const [draft, setDraft] = useState<Task>(() => createTaskDraft(section));
   const shell = useShell();
-  return <shell.Sheet open={open} onOpenChange={(next) => { if (!next) onClose(); }} title={`Nuevo pendiente de ${section}`} description="Agrégalo ahora y completen el detalle cuando lo tengan claro."><div className="sheet-form"><label className="field-block" htmlFor="task-title"><span>Pendiente</span><shell.Field id="task-title" placeholder="Ej. Confirmar música" value={title} onChange={(event) => setTitle(event.target.value)} /></label><label className="field-block" htmlFor="task-detail"><span>Detalle</span><shell.Field id="task-detail" placeholder="Nota breve o siguiente paso" value={detail} onChange={(event) => setDetail(event.target.value)} /></label><button className="primary-button" type="button" disabled={!title.trim()} onClick={() => { shell.hideKeyboard(); onAdd({ id: `task-${Date.now()}`, seccion: section, titulo: title.trim(), detalle: detail.trim() || "Sin detalle", responsable: "Ambos", estado: "Pendiente", prioridad: "Media" }); setTitle(""); setDetail(""); }}><PlusIcon /> Agregar pendiente</button></div></shell.Sheet>;
+
+  useEffect(() => {
+    if (open) setDraft(createTaskDraft(section));
+  }, [open, section]);
+
+  return (
+    <shell.Sheet open={open} onOpenChange={(next) => { if (!next) onClose(); }} title={`Nuevo pendiente de ${section}`} description="Agrégalo ahora y completen el resto cuando lo tengan claro.">
+      <div className="sheet-form church-sheet-form">
+        <label className="field-block" htmlFor="task-title"><span>Pendiente</span><shell.Field id="task-title" autoFocus placeholder="Ej. Confirmar música" value={draft.titulo} onChange={(event) => setDraft((current) => ({ ...current, titulo: event.target.value }))} /></label>
+        <label className="field-block" htmlFor="task-detail"><span>Información y notas</span><shell.Field id="task-detail" placeholder="Nota breve o siguiente paso" value={draft.detalle} onChange={(event) => setDraft((current) => ({ ...current, detalle: event.target.value }))} /></label>
+        <label className="field-block" htmlFor="task-due"><span>Fecha límite</span><shell.Field id="task-due" inputMode="numeric" placeholder="AAAA-MM-DD (opcional)" value={draft.fecha_limite ?? ""} onChange={(event) => setDraft((current) => ({ ...current, fecha_limite: event.target.value }))} /></label>
+        <div><span className="action-label">Responsable</span><div className="segmented-actions">{(["Novio", "Novia", "Ambos"] as Responsible[]).map((responsible) => <button key={responsible} className={draft.responsable === responsible ? "selected" : ""} type="button" onClick={() => setDraft((current) => ({ ...current, responsable: responsible }))}>{responsible}</button>)}</div></div>
+        <div><span className="action-label">Prioridad</span><div className="segmented-actions">{(["Alta", "Media", "Baja"] as Task["prioridad"][]).map((priority) => <button key={priority} className={draft.prioridad === priority ? "selected" : ""} type="button" onClick={() => setDraft((current) => ({ ...current, prioridad: priority }))}>{priority}</button>)}</div></div>
+        <button className="primary-button" type="button" disabled={!draft.titulo.trim()} onClick={() => { shell.hideKeyboard(); onAdd({ ...draft, titulo: draft.titulo.trim(), detalle: draft.detalle.trim() || "Sin detalle", fecha_limite: draft.fecha_limite?.trim() || undefined }); }}><PlusIcon /> Agregar pendiente</button>
+      </div>
+    </shell.Sheet>
+  );
 }
 
-function AddGuestSheet({ open, onClose, onAdd }: { open: boolean; onClose: () => void; onAdd: (guest: GuestGroup) => void }) {
+function AddGuestSheet({ open, defaultAudience, onClose, onAdd }: { open: boolean; defaultAudience: GuestAudience; onClose: () => void; onAdd: (guest: GuestGroup) => void }) {
   const [name, setName] = useState("");
   const [count, setCount] = useState("1");
+  const [target, setTarget] = useState<GuestGroup["invitado_a"]>(defaultAudience);
   const shell = useShell();
-  return <shell.Sheet open={open} onOpenChange={(next) => { if (!next) onClose(); }} title="Agregar invitados" description="Puedes registrar una persona o un grupo familiar."><div className="sheet-form"><label className="field-block" htmlFor="guest-name"><span>Nombre o grupo</span><shell.Field id="guest-name" placeholder="Ej. Familia Ramírez" value={name} onChange={(event) => setName(event.target.value)} /></label><label className="field-block" htmlFor="guest-count"><span>Número de personas</span><shell.Field id="guest-count" inputMode="numeric" placeholder="1" value={count} onChange={(event) => setCount(event.target.value.replace(/[^0-9]/g, ""))} /></label><button className="primary-button" type="button" disabled={!name.trim()} onClick={() => { shell.hideKeyboard(); onAdd({ id: `guest-${Date.now()}`, nombre: name.trim(), personas: Math.max(1, Number(count) || 1), invitado_a: "Recepción", rsvp: "Pendiente", transporte: "Por definir" }); setName(""); setCount("1"); }}><PersonIcon /> Agregar invitados</button></div></shell.Sheet>;
+
+  useEffect(() => {
+    if (open) setTarget(defaultAudience);
+  }, [open, defaultAudience]);
+
+  return (
+    <shell.Sheet open={open} onOpenChange={(next) => { if (!next) onClose(); }} title="Agregar invitados" description="Puedes registrar una persona o un grupo familiar.">
+      <div className="sheet-form church-sheet-form">
+        <label className="field-block" htmlFor="guest-name"><span>Nombre o grupo</span><shell.Field id="guest-name" autoFocus placeholder="Ej. Familia Ramírez" value={name} onChange={(event) => setName(event.target.value)} /></label>
+        <label className="field-block" htmlFor="guest-count"><span>Número de personas</span><shell.Field id="guest-count" inputMode="numeric" placeholder="1" value={count} onChange={(event) => setCount(event.target.value.replace(/[^0-9]/g, ""))} /></label>
+        <div><span className="action-label">Invitado a</span><div className="segmented-actions">{(["Recepción", "Iglesia", "Ambas"] as GuestGroup["invitado_a"][]).map((option) => <button key={option} className={target === option ? "selected" : ""} type="button" onClick={() => setTarget(option)}>{option}</button>)}</div></div>
+        <p className="sheet-note">{target === "Iglesia" ? "Solo iglesia: entra a la lista de la ceremonia y no tiene que confirmar." : "Cuenta para la recepción, así que queda como pendiente de confirmar."}</p>
+        <button className="primary-button" type="button" disabled={!name.trim()} onClick={() => { shell.hideKeyboard(); onAdd({ id: `guest-${Date.now()}`, nombre: name.trim(), personas: Math.max(1, Number(count) || 1), invitado_a: target, rsvp: "Pendiente", transporte: "Por definir" }); setName(""); setCount("1"); }}><PersonIcon /> Agregar invitados</button>
+      </div>
+    </shell.Sheet>
+  );
 }
